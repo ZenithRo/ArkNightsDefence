@@ -1,2 +1,13 @@
-.vscode/launch.json
-.vscode/tasks.json
+# Visual Studio
+.vs/
+.vscode/
+
+# UE5 Generated
+Binaries/
+Intermediate/
+DerivedDataCache/
+Saved/
+
+# Project
+*.sln.DotSettings.user
+UpgradeLog.htm

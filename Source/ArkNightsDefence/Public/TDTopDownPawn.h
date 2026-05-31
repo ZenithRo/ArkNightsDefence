@@ -36,13 +36,13 @@ protected:
 	float MoveSpeed = 1500.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
-	float MinZoom = 400.0f;
+	float CameraPitch = -60.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
-	float MaxZoom = 3000.0f;
+	float CloseZoom = 800.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
-	float ZoomStep = 200.0f;
+	float FarZoom = 2000.0f;
 
 	void Move(const FInputActionValue& Value);
 	void Zoom(const FInputActionValue& Value);

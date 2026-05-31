@@ -12,7 +12,6 @@ ATDTopDownPawn::ATDTopDownPawn()
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetupAttachment(RootComponent);
 	SpringArm->TargetArmLength = 2000.0f;
-	SpringArm->SetRelativeRotation(FRotator(-60.0f, 0.0f, 0.0f));
 	SpringArm->bDoCollisionTest = false;
 	SpringArm->bInheritPitch = false;
 	SpringArm->bInheritRoll = false;
@@ -24,6 +23,7 @@ ATDTopDownPawn::ATDTopDownPawn()
 void ATDTopDownPawn::BeginPlay()
 {
 	Super::BeginPlay();
+	SpringArm->SetRelativeRotation(FRotator(CameraPitch, 0.0f, 0.0f));
 }
 
 void ATDTopDownPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -63,6 +63,12 @@ void ATDTopDownPawn::Move(const FInputActionValue& Value)
 void ATDTopDownPawn::Zoom(const FInputActionValue& Value)
 {
 	float Wheel = Value.Get<float>();
-	float NewLength = SpringArm->TargetArmLength - Wheel * ZoomStep;
-	SpringArm->TargetArmLength = FMath::Clamp(NewLength, MinZoom, MaxZoom);
+	if (Wheel > 0.0f)
+	{
+		SpringArm->TargetArmLength = CloseZoom;
+	}
+	else if (Wheel < 0.0f)
+	{
+		SpringArm->TargetArmLength = FarZoom;
+	}
 }

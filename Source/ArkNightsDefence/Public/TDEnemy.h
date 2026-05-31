@@ -44,10 +44,13 @@ public:
 	int32 BountyGold = 10;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Path")
-	TObjectPtr<USplineComponent> TargetPath;
+	TObjectPtr<AActor> PathActor;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Path")
 	float DistanceAlongSpline = 0.0f;
+
+private:
+	TObjectPtr<USplineComponent> CachedSpline;
 
 	UFUNCTION(BlueprintCallable, Category = "Enemy")
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent,

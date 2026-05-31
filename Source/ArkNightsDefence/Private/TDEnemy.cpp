@@ -20,19 +20,24 @@ void ATDEnemy::BeginPlay()
 {
 	Super::BeginPlay();
 	CurrentHealth = MaxHealth;
+
+	if (PathActor)
+	{
+		CachedSpline = PathActor->FindComponentByClass<USplineComponent>();
+	}
 }
 
 void ATDEnemy::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (!TargetPath) return;
+	if (!CachedSpline) return;
 
 	DistanceAlongSpline += MoveSpeed * DeltaTime;
 
-	float SplineLength = TargetPath->GetSplineLength();
-	FVector NewLocation = TargetPath->GetLocationAtDistanceAlongSpline(DistanceAlongSpline, ESplineCoordinateSpace::World);
-	FRotator NewRotation = TargetPath->GetRotationAtDistanceAlongSpline(DistanceAlongSpline, ESplineCoordinateSpace::World);
+	float SplineLength = CachedSpline->GetSplineLength();
+	FVector NewLocation = CachedSpline->GetLocationAtDistanceAlongSpline(DistanceAlongSpline, ESplineCoordinateSpace::World);
+	FRotator NewRotation = CachedSpline->GetRotationAtDistanceAlongSpline(DistanceAlongSpline, ESplineCoordinateSpace::World);
 	SetActorLocationAndRotation(NewLocation, NewRotation);
 
 	if (DistanceAlongSpline >= SplineLength)

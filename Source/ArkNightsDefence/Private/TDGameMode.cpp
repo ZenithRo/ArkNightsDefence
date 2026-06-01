@@ -1,17 +1,48 @@
 #include "TDGameMode.h"
+#include "TimerManager.h"
 
 ATDGameMode::ATDGameMode()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	Cost = MaxCost;
+	Cost = 0.0f;
 	Experience = 0;
+}
+
+void ATDGameMode::BeginPlay()
+{
+	Super::BeginPlay();
+
+	GetWorldTimerManager().SetTimer(
+		CostRegenTimerHandle,
+		this,
+		&ATDGameMode::RegenerateCost,
+		1.0f,
+		true
+	);
+
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green,
+			TEXT("TDGameMode BeginPlay: Cost regen timer started (0.5/sec)"));
+	}
+}
+
+void ATDGameMode::RegenerateCost()
+{
+	Cost = FMath::Min(Cost + CostRegenRate, MaxCost);
 }
 
 void ATDGameMode::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	Cost = FMath::Min(Cost + CostRegenRate * DeltaTime, MaxCost);
+	static int32 TickCount = 0;
+	TickCount++;
+	if (TickCount <= 3 && GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::White,
+			FString::Printf(TEXT("TDGameMode Tick #%d: Cost=%.1f"), TickCount, Cost));
+	}
 }
 
 void ATDGameMode::EnemyReachedEnd(int32 Damage)

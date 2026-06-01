@@ -24,7 +24,7 @@ public:
 	float Cost;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Game|Cost")
-	float CostRegenRate = 0.5f;
+	float CostRegenRate = 1.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Game|Experience")
 	int32 Experience;
@@ -37,4 +37,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Game")
 	bool SpendCost(float Amount);
+
+protected:
+	virtual void BeginPlay() override;
+
+private:
+	FTimerHandle CostRegenTimerHandle;
+
+	void RegenerateCost();
 };

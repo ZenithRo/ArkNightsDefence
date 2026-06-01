@@ -2,6 +2,7 @@
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SplineComponent.h"
+#include "TDGameMode.h"
 
 ATDEnemy::ATDEnemy()
 {
@@ -64,14 +65,20 @@ float ATDEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent,
 
 void ATDEnemy::Die()
 {
+	ATDGameMode* GM = Cast<ATDGameMode>(GetWorld()->GetAuthGameMode());
+	if (GM)
+	{
+		GM->AddExperience(ExperienceDrop);
+	}
 	Destroy();
 }
 
 void ATDEnemy::OnReachedEnd()
 {
-	if (GEngine)
+	ATDGameMode* GM = Cast<ATDGameMode>(GetWorld()->GetAuthGameMode());
+	if (GM)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("Enemy reached the end!"));
+		GM->EnemyReachedEnd(LifeDamage);
 	}
 	Destroy();
 }

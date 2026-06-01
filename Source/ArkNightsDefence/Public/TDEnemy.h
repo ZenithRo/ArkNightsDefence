@@ -41,7 +41,10 @@ public:
 	float Armor = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
-	int32 BountyGold = 10;
+	int32 ExperienceDrop = 10;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
+	int32 LifeDamage = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Path")
 	TObjectPtr<AActor> PathActor;

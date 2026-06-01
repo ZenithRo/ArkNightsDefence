@@ -1,3 +1,4 @@
+// 游戏运行时编译目标配置
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;

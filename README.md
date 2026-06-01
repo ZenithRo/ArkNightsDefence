@@ -53,7 +53,7 @@
 |------|------|
 | `Source/ArkNightsDefence/Public/TDEnemy.h` | 敌人基类：继承AActor，Sphere碰撞体+StaticMesh组件，MaxHealth/CurrentHealth/MoveSpeed/Armor/ExperienceDrop/LifeDamage属性，PathActor引用BP_Path，CachedSpline缓存，TakeDamage(护甲减伤)，Die()/OnReachedEnd() |
 | `Source/ArkNightsDefence/Private/TDEnemy.cpp` | BeginPlay: 从PathActor获取SplineComponent缓存，初始化血量。Tick: 沿Spline推进DistanceAlongSpline+MoveSpeed*DeltaTime，自动面朝方向旋转，到达终点调用OnReachedEnd销毁。TakeDamage: damage-armor(最低1)扣血，≤0调用Die(掉落经验) |
-| `Source/ArkNightsDefence/Public/TDGameMode.h` | GameMode：PlayerLives(默认3)，双货币系统——Cost(费用, MaxCost=100, Timer每秒+0.5) + Experience(作战记录)，EnemyReachedEnd()扣生命+GameOver，AddExperience()/SpendCost() |
+| `Source/ArkNightsDefence/Public/TDGameMode.h` | GameMode：PlayerLives(默认3)，双货币系统——Cost(费用, MaxCost=100, Timer每秒+1.0) + Experience(作战记录)，EnemyReachedEnd()扣生命+GameOver，AddExperience()/SpendCost() |
 | `Source/ArkNightsDefence/Private/TDGameMode.cpp` | BeginPlay启动CostRegenTimer(1s间隔)，EnemyReachedEnd: PlayerLives减LifeDamage，≤0打印GAME OVER。AddExperience/SpendCost含Debug打印 |
 | `Source/ArkNightsDefence/Public/TDHUDWidget.h` | UMG HUD Widget: BindWidget绑定TextLives/TextCost/TextExp，NativeTick实时从GameMode读取数据 |
 | `Source/ArkNightsDefence/Private/TDHUDWidget.cpp` | Tick读取GameMode的PlayerLives/Cost/Experience更新TextBlock显示 |
@@ -66,7 +66,7 @@
 | `BP_Enemy_Infantry` | 蓝图类（父类TDEnemy） | 步兵：80HP/400速度/0护甲/5经验/1生命伤害 |
 | `BP_Enemy_Armored` | 蓝图类（父类TDEnemy） | 装甲兵：300HP/150速度/10护甲/15经验/2生命伤害 |
 | `BP_Enemy_Flying` | 蓝图类（父类TDEnemy） | 飞行单位：120HP/250速度/0护甲/10经验/1生命伤害 |
-| `M_Red` / `M_Blue` | 材质 | 敌人颜色区分（装甲=红，飞行=蓝） |
+| `M_Red` / `M_Blue` | 材质 | 敌人颜色区分（步兵=绿，装甲=红，飞行=蓝） |
 | `WBP_HUD` | Widget蓝图（父类TDHUDWidget） | 3个TextBlock绑定：TextLives/TextCost/TextExp |
 | `BP_TDGameMode` | 蓝图（父类ATDGameMode） | BeginPlay: Create WBP_HUD → Add to Viewport |
 
@@ -74,7 +74,7 @@
 
 | 货币 | 用途 | 获取方式 |
 |------|------|----------|
-| 费用 (Cost) | 部署防御塔 | 每秒自动恢复+0.5，上限100 |
+| 费用 (Cost) | 部署防御塔 | 每秒自动恢复1.0，上限100 |
 | 作战记录 (Experience/EXP) | 升级防御塔(3档) | 击杀敌人掉落 |
 
 #### 功能验证
@@ -85,6 +85,6 @@
 - ✅ 3种敌人差异（步/甲/飞：80/300/120血，400/150/250速，0/10/0甲）
 - ✅ 护甲减伤系统（damage - armor，最低1）
 - ✅ 击杀敌人掉落经验（Die→GM->AddExperience）
-- ✅ Cost每秒自然恢复+0.5 (Timer驱动)
+- ✅ Cost每秒自然恢复+1.0 (Timer驱动)
 - ✅ UMG HUD实时显示：Lives / Cost / EXP
 - ✅ 全局Debug日志（EnemyLeaked/EXP+GAME OVER/Cost变化）

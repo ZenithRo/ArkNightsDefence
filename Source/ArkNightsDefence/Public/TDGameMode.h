@@ -15,7 +15,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Game|Lives")
-	int32 PlayerLives = 20;
+	int32 PlayerLives = 3;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Game|Cost")
 	float MaxCost = 100.0f;

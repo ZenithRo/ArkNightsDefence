@@ -33,7 +33,7 @@
 | 文件 | 说明 |
 |------|------|
 | `Config/DefaultInput.ini` | EnhancedInput系统配置 |
-| `.gitignore` | 忽略.vs, Binaries, Intermediate, DerivedDataCache, Saved, UpgradeLog.htm, week1_progress.txt |
+| `.gitignore` | 忽略.vs, Binaries, Intermediate, DerivedDataCache, Saved, UpgradeLog.htm, week1_progress.txt, week2_progress.txt |
 
 #### 功能验证
 
@@ -102,3 +102,51 @@
 - ✅ 全局Debug日志（EnemyLeaked/EXP+/GAME OVER/Cost变化）
 - ✅ Source全部C++文件中文注释 (覆盖率>20%)
 - ✅ 所有已提交保存
+
+---
+
+### 第3周 (6/2-) 防御塔系统
+
+#### C++ 类
+
+| 文件 | 说明 |
+|------|------|
+| `Source/ArkNightsDefence/Public/TDBaseTower.h` | 塔基类：继承AActor，TowerMesh/AttackRange+RangeSphere/AttackInterval/DamageType(EDamageType)/CostToDeploy，CurrentTarget/TowerLevel(1~3)，FindTarget()/Fire()/LevelUp() |
+| `Source/ArkNightsDefence/Private/TDBaseTower.cpp` | Tick搜索+旋转朝向目标，SetTimer定时Fire→ApplyDamage，LevelUp消耗经验+更新攻击/间隔/范围+重启Timer |
+| `Source/ArkNightsDefence/Public/TDGameMode.h` | 新增 SpendExperience(int32) 消耗经验接口 |
+| `Source/ArkNightsDefence/Private/TDGameMode.cpp` | SpendExperience: 经验≥Amount则减经验+刷新HUD，否则打印红色提示 |
+
+#### 蓝图资产
+
+| 蓝图 | 类型 | 说明 |
+|------|------|------|
+| (待创建) `BP_Guard` | 蓝图类（父类TDBaseTower） | 近卫塔：单体物理高伤 |
+| (待创建) `BP_Sniper` | 蓝图类（父类TDBaseTower） | 狙击塔：远程快速攻击 |
+| (待创建) `BP_Caster` | 蓝图类（父类TDBaseTower） | 术士塔：范围法术AOE |
+
+#### TDBaseTower 基础属性 (ClassDefaults)
+
+| 参数 | 默认值 | 说明 |
+|------|:---:|------|
+| AttackDamage | 30.0 | 攻击力 |
+| AttackRange | 300.0 | 攻击范围 |
+| AttackInterval | 1.0s | 攻击间隔 |
+| DamageType | Physical | 伤害类型 |
+| CostToDeploy | 10.0 | 部署费用 |
+| TowerLevel | 1 | 当前等级 |
+| UpgradeCost_Lv2 | 50 | 升2级所需经验 |
+| UpgradeCost_Lv3 | 100 | 升3级所需经验 |
+| DamagePerLevel | +15 | 每级攻击力增量 |
+| IntervalReducePerLevel | -0.15s | 每级攻速缩减 |
+| RangePerLevel | +50 | 每级范围增量 |
+
+#### 功能验证
+
+- ✅ TDBaseTower 搜索最近敌人 (FindTarget, TActorIterator)
+- ✅ 旋转炮塔朝向目标 (RInterpTo水平旋转)
+- ✅ 定时攻击 (SetTimer, Fire→ApplyDamage)
+- ✅ 3档升级 (LevelUp, 消耗SpendExperience)
+- ✅ SpendExperience 接口 (GameMode新增)
+- ⬜ 部署系统 (点击地面 → SpendCost → SpawnActor)
+- ⬜ 弹丸系统 (TDProjectile)
+- ⬜ 波次系统 (TDWaveManager)

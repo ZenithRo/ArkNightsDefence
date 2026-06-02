@@ -45,46 +45,60 @@
 
 ---
 
-### 第2周 (5/31-6/1) 敌人系统 + Spline路径 + GameMode + UMG HUD
+### 第2周 (5/31-6/2) 敌人系统 + Spline路径 + GameMode + UMG HUD
 
 #### C++ 类
 
 | 文件 | 说明 |
 |------|------|
-| `Source/ArkNightsDefence/Public/TDEnemy.h` | 敌人基类：继承AActor，Sphere碰撞体+StaticMesh组件，MaxHealth/CurrentHealth/MoveSpeed/Armor/ExperienceDrop/LifeDamage属性，PathActor引用BP_Path，CachedSpline缓存，TakeDamage(护甲减伤)，Die()/OnReachedEnd() |
-| `Source/ArkNightsDefence/Private/TDEnemy.cpp` | BeginPlay: 从PathActor获取SplineComponent缓存，初始化血量。Tick: 沿Spline推进DistanceAlongSpline+MoveSpeed*DeltaTime，自动面朝方向旋转，到达终点调用OnReachedEnd销毁。TakeDamage: damage-armor(最低1)扣血，≤0调用Die(掉落经验) |
-| `Source/ArkNightsDefence/Public/TDGameMode.h` | GameMode：PlayerLives(默认3)，双货币系统——Cost(费用, MaxCost=100, Timer每秒+1.0) + Experience(作战记录)，EnemyReachedEnd()扣生命+GameOver，AddExperience()/SpendCost() |
-| `Source/ArkNightsDefence/Private/TDGameMode.cpp` | BeginPlay启动CostRegenTimer(1s间隔)，EnemyReachedEnd: PlayerLives减LifeDamage，≤0打印GAME OVER。AddExperience/SpendCost含Debug打印 |
-| `Source/ArkNightsDefence/Public/TDHUDWidget.h` | UMG HUD Widget: BindWidget绑定TextLives/TextCost/TextExp，NativeTick实时从GameMode读取数据 |
-| `Source/ArkNightsDefence/Private/TDHUDWidget.cpp` | Tick读取GameMode的PlayerLives/Cost/Experience更新TextBlock显示 |
+| `Source/ArkNightsDefence/Public/TDEnemy.h` | 敌人基类：EDamageType枚举(Physical/Magic)，Sphere碰撞体+StaticMesh组件，MaxHealth/MoveSpeed/PhysicalArmor/MagicResistance/ExperienceDrop/LifeDamage，PathActor引用BP_Path，ApplyDamage(Amount, Type)双防减伤，Die()/OnReachedEnd() |
+| `Source/ArkNightsDefence/Private/TDEnemy.cpp` | BeginPlay缓存Spline。Tick沿路径推进+旋转+终点检测。ApplyDamage: 物理=伤害-PHYS_DEF, 法术=伤害×(1-RES%), 均≥1。Die掉落经验，OnReachedEnd扣生命 |
+| `Source/ArkNightsDefence/Public/TDGameMode.h` | GameMode：PlayerLives(3)，双货币——Cost(初始0, MaxCost=99, Timer每秒+1.0) + Experience，HUDWidget引用，EnemyReachedEnd/AddExperience/SpendCost含Debug打印+自动刷新HUD |
+| `Source/ArkNightsDefence/Private/TDGameMode.cpp` | BeginPlay启动CostRegenTimer(1s)。RegenerateCost/EnemyReachedEnd/AddExperience/SpendCost均调用HUDWidget->UpdateDisplay()事件驱动刷新 |
+| `Source/ArkNightsDefence/Public/TDHUDWidget.h` | UMG HUD Widget: 事件驱动更新(无Tick)，UFUNCTION UpdateDisplay()，BindWidget绑定TextLives/TextCost/TextExp |
+| `Source/ArkNightsDefence/Private/TDHUDWidget.cpp` | UpdateDisplay从GameMode读取PlayerLives/Cost/Experience刷新TextBlock |
+| `Source/ArkNightsDefence/Public/TDTopDownPawn.h` | 新增ZoomStep/ZoomInterpSpeed参数，TargetZoomDistance私有成员，Tick平滑插值弹簧臂长度 |
+| `Source/ArkNightsDefence/Private/TDTopDownPawn.cpp` | Tick中FMath::FInterpTo平滑缩放；Zoom改为步进(±ZoomStep)钳制在CloseZoom~FarZoom之间 |
 
 #### 蓝图资产
 
 | 蓝图 | 类型 | 说明 |
 |------|------|------|
 | `BP_Path` | 蓝图类（父类Actor） | 含USplineComponent(Root)，关卡中画敌人路径 |
-| `BP_Enemy_Infantry` | 蓝图类（父类TDEnemy） | 步兵：80HP/400速度/0护甲/5经验/1生命伤害 |
-| `BP_Enemy_Armored` | 蓝图类（父类TDEnemy） | 装甲兵：300HP/150速度/10护甲/15经验/2生命伤害 |
-| `BP_Enemy_Flying` | 蓝图类（父类TDEnemy） | 飞行单位：120HP/250速度/0护甲/10经验/1生命伤害 |
+| `BP_Enemy_Infantry` | 蓝图类（父类TDEnemy） | 步兵：80HP/400速度/0物防/0法抗/5经验/1生命伤害 |
+| `BP_Enemy_Armored` | 蓝图类（父类TDEnemy） | 装甲兵：300HP/150速度/10物防/0法抗/15经验/2生命伤害 |
+| `BP_Enemy_Flying` | 蓝图类（父类TDEnemy） | 飞行单位：120HP/250速度/0物防/0法抗/10经验/1生命伤害 |
 | `M_Red` / `M_Blue` | 材质 | 敌人颜色区分（步兵=绿，装甲=红，飞行=蓝） |
 | `WBP_HUD` | Widget蓝图（父类TDHUDWidget） | 3个TextBlock绑定：TextLives/TextCost/TextExp |
-| `BP_TDGameMode` | 蓝图（父类ATDGameMode） | BeginPlay: Create WBP_HUD → Add to Viewport |
+| `BP_TDGameMode` | 蓝图（父类ATDGameMode） | BeginPlay: Create WBP_HUD → Set HUDWidget → Add to Viewport → UpdateDisplay |
 
 #### 双货币体系
 
 | 货币 | 用途 | 获取方式 |
 |------|------|----------|
-| 费用 (Cost) | 部署防御塔 | 每秒自动恢复1.0，上限100 |
+| 费用 (Cost) | 部署防御塔 | 初始0，每秒自动+1.0，上限99 |
 | 作战记录 (Experience/EXP) | 升级防御塔(3档) | 击杀敌人掉落 |
+
+#### 关键改动记录
+
+| 日期 | 改动 |
+|------|------|
+| 6/1 | Zoom平滑插值：FInterpTo + ZoomStep步进钳制 |
+| 6/1 | 伤害系统重做：EDamageType枚举，PhysicalArmor(物防) + MagicResistance(法抗%)，ApplyDamage() |
+| 6/1 | HUD事件驱动：移除NativeTick，改为GameMode数据变化时调用UpdateDisplay() |
+| 6/2 | Cost初始=0，MaxCost=99，恢复速率1.0/秒 |
 
 #### 功能验证
 
 - ✅ Spline路径绘制（Alt+拖拽控制点增删节点）
 - ✅ 敌人沿Spline自动移动（面朝路径方向旋转）
 - ✅ 到达Spline终点扣生命(LifeDamage) + 销毁 + GameOver判定
-- ✅ 3种敌人差异（步/甲/飞：80/300/120血，400/150/250速，0/10/0甲）
-- ✅ 护甲减伤系统（damage - armor，最低1）
+- ✅ 3种敌人差异（步/甲/飞：80/300/120血，400/150/250速，0/10/0+0/0/0防）
+- ✅ 双防减伤：物理=攻击-防御(≥1)，法术=攻击×(1-抗性%)(≥1)
 - ✅ 击杀敌人掉落经验（Die→GM->AddExperience）
-- ✅ Cost每秒自然恢复+1.0 (Timer驱动)
-- ✅ UMG HUD实时显示：Lives / Cost / EXP
-- ✅ 全局Debug日志（EnemyLeaked/EXP+GAME OVER/Cost变化）
+- ✅ Cost初始0，每秒+1.0，上限99 (Timer驱动)
+- ✅ Zoom平滑过渡（FInterpTo + 步进钳制）
+- ✅ HUD事件驱动刷新（数据变化才更新UI，不Tick轮询）
+- ✅ 全局Debug日志（EnemyLeaked/EXP+/GAME OVER/Cost变化）
+- ✅ Source全部C++文件中文注释 (覆盖率>20%)
+- ✅ 所有已提交保存

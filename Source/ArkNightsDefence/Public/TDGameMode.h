@@ -21,7 +21,7 @@ public:
 
 	// 费用上限
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Game|Cost")
-	float MaxCost = 100.0f;
+	float MaxCost = 99.0f;
 
 	// 当前可用费用 (只读)
 	UPROPERTY(BlueprintReadOnly, Category = "Game|Cost")
@@ -29,7 +29,7 @@ public:
 
 	// 费用自然恢复速度 (每秒)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Game|Cost")
-	float CostRegenRate = 0.5f;
+	float CostRegenRate = 1.0f;
 
 	// 当前作战记录/经验 (只读)
 	UPROPERTY(BlueprintReadOnly, Category = "Game|Experience")
@@ -54,6 +54,6 @@ private:
 	// 费用恢复定时器句柄
 	FTimerHandle CostRegenTimerHandle;
 
-	// 费用自然恢复: 每次+0.5, 不超过MaxCost
+	// 费用自然恢复: 每次+1.0, 不超过MaxCost
 	void RegenerateCost();
 };

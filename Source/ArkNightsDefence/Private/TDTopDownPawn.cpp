@@ -1,4 +1,4 @@
-// 俯视角摄像机Pawn实现: WASD地图平移 + 滚轮缩放
+// 俯视角摄像机Pawn实现: WASD地图平移 + 平滑滚轮缩放
 #include "TDTopDownPawn.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
@@ -8,8 +8,8 @@
 
 ATDTopDownPawn::ATDTopDownPawn()
 {
-	// 不需要Tick, 移动由输入事件驱动
-	PrimaryActorTick.bCanEverTick = false;
+	// 启用Tick以驱动缩放平滑插值
+	PrimaryActorTick.bCanEverTick = true;
 
 	// 创建弹簧臂, 设置默认臂长和碰撞行为
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
@@ -27,8 +27,21 @@ ATDTopDownPawn::ATDTopDownPawn()
 void ATDTopDownPawn::BeginPlay()
 {
 	Super::BeginPlay();
-	// 设置摄像机俯角 (从蓝图ClassDefaults读取CameraPitch)
+	// 设置摄像机俯角 + 初始化目标缩放距离
 	SpringArm->SetRelativeRotation(FRotator(CameraPitch, 0.0f, 0.0f));
+	TargetZoomDistance = SpringArm->TargetArmLength;
+}
+
+void ATDTopDownPawn::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	// 平滑插值弹簧臂长度到目标值
+	SpringArm->TargetArmLength = FMath::FInterpTo(
+		SpringArm->TargetArmLength,
+		TargetZoomDistance,
+		DeltaTime,
+		ZoomInterpSpeed
+	);
 }
 
 void ATDTopDownPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -69,16 +82,16 @@ void ATDTopDownPawn::Move(const FInputActionValue& Value)
 	AddActorWorldOffset(Delta);
 }
 
-// 滚轮缩放: 前滚=拉近, 后滚=拉远
+// 滚轮缩放: 前滚=拉近(减ZoomStep), 后滚=拉远(加ZoomStep), 钳制在CloseZoom~FarZoom之间
 void ATDTopDownPawn::Zoom(const FInputActionValue& Value)
 {
 	float Wheel = Value.Get<float>();
 	if (Wheel > 0.0f)
 	{
-		SpringArm->TargetArmLength = CloseZoom;
+		TargetZoomDistance = FMath::Clamp(TargetZoomDistance - ZoomStep, CloseZoom, FarZoom);
 	}
 	else if (Wheel < 0.0f)
 	{
-		SpringArm->TargetArmLength = FarZoom;
+		TargetZoomDistance = FMath::Clamp(TargetZoomDistance + ZoomStep, CloseZoom, FarZoom);
 	}
 }

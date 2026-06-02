@@ -9,7 +9,7 @@ class UCameraComponent;
 class UInputAction;
 struct FInputActionValue;
 
-// 俯视角摄像机Pawn: 提供WASD平移 + 滚轮缩放 + 可调俯角
+// 俯视角摄像机Pawn: 提供WASD平移 + 平滑滚轮缩放 + 可调俯角
 UCLASS()
 class ARKNIGHTSDEFENCE_API ATDTopDownPawn : public APawn
 {
@@ -45,19 +45,32 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
 	float CameraPitch = -60.0f;
 
-	// 近景缩放臂长
+	// 最近缩放距离
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
 	float CloseZoom = 800.0f;
 
-	// 远景缩放臂长
+	// 最远缩放距离
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
 	float FarZoom = 2000.0f;
 
+	// 滚轮每次滚动的缩放步长
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
+	float ZoomStep = 200.0f;
+
+	// 缩放平滑插值速度 (越大越快)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
+	float ZoomInterpSpeed = 5.0f;
+
 	// 基于摄像机方向水平移动
 	void Move(const FInputActionValue& Value);
-	// 滚轮放大/缩小
+	// 滚轮调整目标缩放距离
 	void Zoom(const FInputActionValue& Value);
 
 public:
+	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+
+private:
+	// 目标缩放距离, Tick中平滑插值接近
+	float TargetZoomDistance;
 };

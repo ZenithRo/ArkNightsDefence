@@ -5,8 +5,8 @@
 ATDGameMode::ATDGameMode()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	// 初始费用 = 上限, 经验 = 0
-	Cost = MaxCost;
+	// 初始费用 = 0 (等自动回复慢慢涨), 经验 = 0
+	Cost = 0.0f;
 	Experience = 0;
 }
 

@@ -5,6 +5,7 @@
 #include "TDGameMode.h"
 #include "TDEnemy.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
 #include "TimerManager.h"
 
 ATDBaseTower::ATDBaseTower()

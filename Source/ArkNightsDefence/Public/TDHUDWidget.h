@@ -4,14 +4,16 @@
 #include "Blueprint/UserWidget.h"
 #include "TDHUDWidget.generated.h"
 
-// UMG HUD界面: 通过BindWidget绑定TextBlock, 每帧刷新生命/费用/经验
+// UMG HUD界面: 由GameMode数据变化时触发更新, 不依赖Tick轮询
 UCLASS()
 class ARKNIGHTSDEFENCE_API UTDHUDWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
 public:
-	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	// 从GameMode读取最新数据并刷新所有TextBlock
+	UFUNCTION(BlueprintCallable, Category = "HUD")
+	void UpdateDisplay();
 
 	// 生命值显示 (BindWidget: 蓝图中的TextBlock必须命名为TextLives)
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))

@@ -1,12 +1,11 @@
-// UMG HUD Widget实现: 实时显示生命/费用/经验
+// UMG HUD Widget实现: 由GameMode数据变化时触发更新, 不依赖Tick轮询
 #include "TDHUDWidget.h"
 #include "TDGameMode.h"
 #include "Components/TextBlock.h"
 
-// 每帧从GameMode读取数据并更新TextBlock
-void UTDHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+// 从GameMode读取最新数据并刷新所有TextBlock (被GameMode在数据变化时调用)
+void UTDHUDWidget::UpdateDisplay()
 {
-	Super::NativeTick(MyGeometry, InDeltaTime);
 	ATDGameMode* GM = Cast<ATDGameMode>(GetWorld()->GetAuthGameMode());
 	if (!GM) return;
 

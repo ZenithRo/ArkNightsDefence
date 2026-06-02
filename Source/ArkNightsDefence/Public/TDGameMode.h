@@ -35,6 +35,10 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Game|Experience")
 	int32 Experience;
 
+	// HUD引用: 由BP_TDGameMode在BeginPlay创建WBP_HUD后赋值, 数据变化时自动刷新UI
+	UPROPERTY(BlueprintReadWrite, Category = "Game|HUD")
+	TObjectPtr<class UTDHUDWidget> HUDWidget;
+
 	// 敌人到达终点: 扣生命, ≤0时GameOver
 	UFUNCTION(BlueprintCallable, Category = "Game")
 	void EnemyReachedEnd(int32 Damage);

@@ -1,5 +1,6 @@
 // GameMode实现: 生命系统, 费用自动恢复, 经验累积, 全局Debug日志
 #include "TDGameMode.h"
+#include "TDHUDWidget.h"
 #include "TimerManager.h"
 
 ATDGameMode::ATDGameMode()
@@ -14,7 +15,7 @@ void ATDGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// 启动费用恢复定时器: 每秒+0.5, 使用Timer而非Tick以确保可靠执行
+	// 启动费用恢复定时器: 每秒+1.0
 	GetWorldTimerManager().SetTimer(
 		CostRegenTimerHandle,
 		this,
@@ -26,21 +27,22 @@ void ATDGameMode::BeginPlay()
 	if (GEngine)
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green,
-			TEXT("TDGameMode BeginPlay: Cost regen timer started (0.5/sec)"));
+			TEXT("TDGameMode BeginPlay: Cost regen timer started (1.0/sec)"));
 	}
 }
 
-// 费用恢复: 每次+0.5, 不超过上限
+// 费用恢复: 每次+1.0, 不超过上限
 void ATDGameMode::RegenerateCost()
 {
 	Cost = FMath::Min(Cost + CostRegenRate, MaxCost);
+	if (HUDWidget) HUDWidget->UpdateDisplay();
 }
 
 void ATDGameMode::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// 前3帧打印Cost调试信息, 验证Tick是否正常运行
+	// 前3帧打印Cost调试信息
 	static int32 TickCount = 0;
 	TickCount++;
 	if (TickCount <= 3 && GEngine)
@@ -69,6 +71,8 @@ void ATDGameMode::EnemyReachedEnd(int32 Damage)
 			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("GAME OVER!"));
 		}
 	}
+
+	if (HUDWidget) HUDWidget->UpdateDisplay();
 }
 
 // 获得经验: 击杀敌人时调用
@@ -81,6 +85,8 @@ void ATDGameMode::AddExperience(int32 Amount)
 		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Cyan,
 			FString::Printf(TEXT("EXP +%d | Total: %d"), Amount, Experience));
 	}
+
+	if (HUDWidget) HUDWidget->UpdateDisplay();
 }
 
 // 消耗费用: 用于部署防御塔, 返回是否成功 (费用不足则拒绝)
@@ -94,6 +100,7 @@ bool ATDGameMode::SpendCost(float Amount)
 			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow,
 				FString::Printf(TEXT("Cost -%.0f | Remaining: %.0f"), Amount, Cost));
 		}
+		if (HUDWidget) HUDWidget->UpdateDisplay();
 		return true;
 	}
 	if (GEngine)

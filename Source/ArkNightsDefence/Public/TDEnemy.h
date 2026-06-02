@@ -8,7 +8,15 @@ class USplineComponent;
 class USphereComponent;
 class UStaticMeshComponent;
 
-// 敌人基类: Spline路径移动, 护甲减伤, 经验掉落, 终点扣血
+// 伤害类型: 物理伤害由DEF减免, 法术伤害由RES百分比减免
+UENUM(BlueprintType)
+enum class EDamageType : uint8
+{
+	Physical	UMETA(DisplayName = "物理伤害"),
+	Magic		UMETA(DisplayName = "法术伤害")
+};
+
+// 敌人基类: Spline路径移动, 双防减伤, 经验掉落, 终点扣血
 UCLASS()
 class ARKNIGHTSDEFENCE_API ATDEnemy : public AActor
 {
@@ -43,9 +51,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
 	float MoveSpeed = 300.0f;
 
-	// 护甲值: 减免等量伤害 (最低1点伤害)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
-	float Armor = 0.0f;
+	// 物理防御: 减免等量物理伤害 (最终伤害最低为1)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Defense")
+	float PhysicalArmor = 0.0f;
+
+	// 法术抗性 (0~100): 减免百分比法术伤害 (最终伤害最低为1)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Defense")
+	float MagicResistance = 0.0f;
 
 	// 击杀后掉落的作战记录数量
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
@@ -63,14 +75,13 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Path")
 	float DistanceAlongSpline = 0.0f;
 
+	// 根据伤害类型计算实际伤害并扣血 (供塔调用)
+	UFUNCTION(BlueprintCallable, Category = "Enemy")
+	void ApplyDamage(float DamageAmount, EDamageType DamageType);
+
 private:
 	// 缓存的Spline组件引用 (BeginPlay时从PathActor获取)
 	TObjectPtr<USplineComponent> CachedSpline;
-
-	// 重写TakeDamage: 实现护甲减伤逻辑
-	UFUNCTION(BlueprintCallable, Category = "Enemy")
-	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent,
-		AController* EventInstigator, AActor* DamageCauser) override;
 
 protected:
 	// 死亡处理: 掉落经验 + 销毁

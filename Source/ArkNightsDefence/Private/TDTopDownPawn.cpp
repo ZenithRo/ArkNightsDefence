@@ -35,7 +35,7 @@ void ATDTopDownPawn::BeginPlay()
 void ATDTopDownPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	// 平滑插值弹簧臂长度到目标值
+	// 使用FInterpTo平滑插值弹簧臂长度到目标值
 	SpringArm->TargetArmLength = FMath::FInterpTo(
 		SpringArm->TargetArmLength,
 		TargetZoomDistance,

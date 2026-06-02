@@ -1,4 +1,4 @@
-// 敌人实现: Spline路径跟随, 护甲减伤, 击杀掉落经验, 终点扣生命
+// 敌人实现: Spline路径跟随, 物理/法术双防减伤, 击杀掉落经验, 终点扣生命
 #include "TDEnemy.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -55,21 +55,35 @@ void ATDEnemy::Tick(float DeltaTime)
 	}
 }
 
-// 受伤计算: 伤害 - 护甲, 最低1点伤害 (保证敌人可被击杀)
-float ATDEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent,
-	AController* EventInstigator, AActor* DamageCauser)
+// 根据伤害类型计算实际伤害并扣血
+// 物理: 伤害 - 物理防御, 最低1点
+// 法术: 伤害 × (1 - 法术抗性/100), 最低1点
+void ATDEnemy::ApplyDamage(float DamageAmount, EDamageType DamageType)
 {
-	float ActualDamage = DamageAmount - Armor;
-	if (ActualDamage < 1.0f) ActualDamage = 1.0f;
+	float FinalDamage = 0.0f;
 
-	CurrentHealth -= ActualDamage;
+	if (DamageType == EDamageType::Physical)
+	{
+		// 物理伤害 = 攻击力 - 防御力 (最低1点)
+		FinalDamage = DamageAmount - PhysicalArmor;
+	}
+	else // Magic
+	{
+		// 法术伤害 = 攻击力 × (1 - 抗性%) (最低1点)
+		FinalDamage = DamageAmount * (1.0f - MagicResistance / 100.0f);
+	}
+
+	if (FinalDamage < 1.0f)
+	{
+		FinalDamage = 1.0f;
+	}
+
+	CurrentHealth -= FinalDamage;
 
 	if (CurrentHealth <= 0.0f)
 	{
 		Die();
 	}
-
-	return ActualDamage;
 }
 
 // 死亡: 掉落经验 → 销毁自身

@@ -110,3 +110,25 @@ bool ATDGameMode::SpendCost(float Amount)
 	}
 	return false;
 }
+
+// 消耗经验: 用于升级塔, 返回是否成功 (经验不足则拒绝)
+bool ATDGameMode::SpendExperience(int32 Amount)
+{
+	if (Experience >= Amount)
+	{
+		Experience -= Amount;
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow,
+				FString::Printf(TEXT("EXP -%d | Remaining: %d"), Amount, Experience));
+		}
+		if (HUDWidget) HUDWidget->UpdateDisplay();
+		return true;
+	}
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red,
+			FString::Printf(TEXT("Not enough EXP! Need: %d, Have: %d"), Amount, Experience));
+	}
+	return false;
+}

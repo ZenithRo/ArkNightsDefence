@@ -51,6 +51,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Game")
 	bool SpendCost(float Amount);
 
+	// 消耗经验, 返回是否成功 (用于塔升级)
+	UFUNCTION(BlueprintCallable, Category = "Game")
+	bool SpendExperience(int32 Amount);
+
 protected:
 	virtual void BeginPlay() override;
 

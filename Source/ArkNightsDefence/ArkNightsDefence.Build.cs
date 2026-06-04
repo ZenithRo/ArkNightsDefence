@@ -17,7 +17,8 @@ public class ArkNightsDefence : ModuleRules
             "Engine",         // 游戏框架基础
             "InputCore",      // 传统输入系统支持
             "EnhancedInput",  // Enhanced Input增强输入系统
-            "UMG"             // UMG UI控件系统
+            "UMG",             // UMG UI控件系统
+            "SpinePlugin"   // Spine动画插件
         });
 
         // 私有依赖模块

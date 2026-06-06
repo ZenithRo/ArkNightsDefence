@@ -46,6 +46,9 @@ public:
 	TObjectPtr<USphereComponent> RangeSphere;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USphereComponent> MeleeRangeSphere;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USpineSkeletonAnimationComponent> SpineAnim;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Spine")
@@ -59,6 +62,9 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Tower")
 	float CurrentHealth;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Tower")
+	bool bIsDead = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower")
 	float AttackDamage = 30.0f;
@@ -105,11 +111,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Tower")
 	void Fire();
 
+	UFUNCTION(BlueprintCallable, Category = "Tower")
+	void TakeDamage(float DamageAmount);
+
 protected:
 	UFUNCTION()
 	void OnAnimComplete(UTrackEntry* Entry);
 
 	void PlayAnim(const FString& AnimName, bool Loop);
+
+	void Die();
 
 private:
 	FTimerHandle FireTimerHandle;

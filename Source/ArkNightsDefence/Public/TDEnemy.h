@@ -7,12 +7,28 @@
 class USplineComponent;
 class USphereComponent;
 class UStaticMeshComponent;
+class USpineSkeletonAnimationComponent;
+class USpineSkeletonDataAsset;
+class ATDBaseTower;
+class UTrackEntry;
 
 UENUM(BlueprintType)
 enum class EDamageType : uint8
 {
 	Physical	UMETA(DisplayName = "物理伤害"),
 	Magic		UMETA(DisplayName = "法术伤害")
+};
+
+UENUM(BlueprintType)
+enum class EEnemyAnimState : uint8
+{
+	None,
+	Idle,
+	MoveBeginning,
+	Moving,
+	MoveEnding,
+	Attacking,
+	Dying
 };
 
 UCLASS()
@@ -28,12 +44,22 @@ protected:
 
 public:
 	virtual void Tick(float DeltaTime) override;
+	virtual void Destroyed() override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USphereComponent> Collision;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UStaticMeshComponent> Mesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USpineSkeletonAnimationComponent> SpineAnim;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Spine")
+	TObjectPtr<USpineSkeletonDataAsset> SkeletonDataAsset;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Enemy|Spine")
+	EEnemyAnimState AnimState = EEnemyAnimState::None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
 	float MaxHealth = 100.0f;
@@ -56,22 +82,45 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
 	int32 LifeDamage = 1;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Attack")
+	float AttackDamage = 10.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Attack")
+	float AttackInterval = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Attack")
+	float MeleeRange = 100.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Path")
 	TObjectPtr<AActor> PathActor;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Path")
 	float DistanceAlongSpline = 0.0f;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Enemy")
+	TObjectPtr<ATDBaseTower> CurrentTargetTower;
+
 	UFUNCTION(BlueprintCallable, Category = "Enemy")
 	void ApplyDamage(float DamageAmount, EDamageType DamageType);
 
 private:
 	TObjectPtr<USplineComponent> CachedSpline;
+	FTimerHandle AttackTimerHandle;
+	bool bIsDead = false;
 
-protected:
+	void PlayAnim(const FString& AnimName, bool Loop);
+
 	UFUNCTION()
+	void OnAnimComplete(UTrackEntry* Entry);
+
+	UFUNCTION()
+	void MeleeAttack();
+
+	void FindNearestTower();
+
 	void Die();
 
+protected:
 	UFUNCTION(BlueprintCallable, Category = "Enemy")
 	void OnReachedEnd();
 };

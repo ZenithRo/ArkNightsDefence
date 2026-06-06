@@ -23,6 +23,11 @@ ATDBaseTower::ATDBaseTower()
 	RangeSphere->SetSphereRadius(AttackRange);
 	RangeSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
+	MeleeRangeSphere = CreateDefaultSubobject<USphereComponent>(TEXT("MeleeRangeSphere"));
+	MeleeRangeSphere->SetupAttachment(RootComponent);
+	MeleeRangeSphere->SetSphereRadius(100.0f);
+	MeleeRangeSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
 	SpineAnim = CreateDefaultSubobject<USpineSkeletonAnimationComponent>(TEXT("SpineAnim"));
 }
 
@@ -31,6 +36,7 @@ void ATDBaseTower::BeginPlay()
 	Super::BeginPlay();
 
 	CurrentHealth = MaxHealth;
+	bIsDead = false;
 
 	if (RangeSphere)
 	{
@@ -67,6 +73,8 @@ void ATDBaseTower::Destroyed()
 void ATDBaseTower::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (bIsDead) return;
 
 	if (!CurrentTarget || CurrentTarget->CurrentHealth <= 0.0f ||
 		FVector::Dist(GetActorLocation(), CurrentTarget->GetActorLocation()) > AttackRange)
@@ -107,7 +115,6 @@ void ATDBaseTower::Tick(float DeltaTime)
 			AnimState = ETowerAnimState::AttackEnding;
 		}
 
-		// Idle时恢复默认朝向 (Scale.Y为正)
 		if (AnimState == ETowerAnimState::Idle)
 		{
 			FVector Scale = GetActorScale3D();
@@ -155,7 +162,7 @@ void ATDBaseTower::FindTarget()
 	CurrentTarget = nullptr;
 
 	UWorld* World = GetWorld();
-	if (!World) return;
+	if (!World || bIsDead) return;
 
 	float ClosestDist = AttackRange;
 
@@ -182,6 +189,36 @@ void ATDBaseTower::Fire()
 	}
 
 	CurrentTarget->ApplyDamage(AttackDamage, DamageType);
+}
+
+void ATDBaseTower::TakeDamage(float DamageAmount)
+{
+	if (bIsDead) return;
+
+	CurrentHealth -= DamageAmount;
+
+	if (CurrentHealth <= 0.0f)
+	{
+		Die();
+	}
+}
+
+void ATDBaseTower::Die()
+{
+	if (bIsDead) return;
+	bIsDead = true;
+
+	GetWorldTimerManager().ClearTimer(FireTimerHandle);
+
+	if (SpineAnim && SpineAnim->HasAnimation(TEXT("Die")))
+	{
+		PlayAnim(TEXT("Die"), false);
+		AnimState = ETowerAnimState::Dying;
+	}
+	else
+	{
+		Destroy();
+	}
 }
 
 bool ATDBaseTower::LevelUp()

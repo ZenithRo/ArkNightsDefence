@@ -6,8 +6,11 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "TimerManager.h"
+#include "ConstructorHelpers.h"
 #include "SpineSkeletonAnimationComponent.h"
+#include "SpineSkeletonRendererComponent.h"
 #include "SpineSkeletonDataAsset.h"
+#include "SpineAtlasAsset.h"
 
 ATDBaseTower::ATDBaseTower()
 {
@@ -24,6 +27,16 @@ ATDBaseTower::ATDBaseTower()
 	RangeSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	SpineAnim = CreateDefaultSubobject<USpineSkeletonAnimationComponent>(TEXT("SpineAnim"));
+
+	SpineRenderer = CreateDefaultSubobject<USpineSkeletonRendererComponent>(TEXT("SpineRenderer"));
+	SpineRenderer->SetupAttachment(RootComponent);
+
+	// 尝试加载SpinePlugin默认Unlit材质 (蓝图中可覆盖)
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> Mat(TEXT("/SpinePlugin/SpineUnlitNormalMaterial.SpineUnlitNormalMaterial"));
+	if (Mat.Succeeded())
+	{
+		SpineRenderer->NormalBlendMaterial = Mat.Object;
+	}
 }
 
 void ATDBaseTower::BeginPlay()
@@ -37,8 +50,9 @@ void ATDBaseTower::BeginPlay()
 		RangeSphere->SetSphereRadius(AttackRange);
 	}
 
-	if (SpineAnim && SkeletonDataAsset)
+	if (SpineAnim && SpineRenderer && SkeletonDataAsset && AtlasAsset)
 	{
+		SpineAnim->Atlas = AtlasAsset;
 		SpineAnim->SkeletonData = SkeletonDataAsset;
 		SpineAnim->AnimationComplete.AddDynamic(this, &ATDBaseTower::OnAnimComplete);
 		SpineAnim->SetAnimation(0, TEXT("Start"), false);
@@ -67,6 +81,11 @@ void ATDBaseTower::Destroyed()
 void ATDBaseTower::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (SpineRenderer && SpineAnim)
+	{
+		SpineRenderer->UpdateRenderer(SpineAnim);
+	}
 
 	if (!CurrentTarget || CurrentTarget->CurrentHealth <= 0.0f ||
 		FVector::Dist(GetActorLocation(), CurrentTarget->GetActorLocation()) > AttackRange)

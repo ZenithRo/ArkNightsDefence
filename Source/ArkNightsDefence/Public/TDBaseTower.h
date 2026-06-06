@@ -9,9 +9,7 @@ class UStaticMeshComponent;
 class USphereComponent;
 class ATDEnemy;
 class USpineSkeletonAnimationComponent;
-class USpineSkeletonRendererComponent;
 class USpineSkeletonDataAsset;
-class USpineAtlasAsset;
 class UTrackEntry;
 
 UENUM(BlueprintType)
@@ -50,14 +48,8 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USpineSkeletonAnimationComponent> SpineAnim;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<USpineSkeletonRendererComponent> SpineRenderer;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Spine")
 	TObjectPtr<USpineSkeletonDataAsset> SkeletonDataAsset;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Spine")
-	TObjectPtr<USpineAtlasAsset> AtlasAsset;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Tower|Spine")
 	ETowerAnimState AnimState = ETowerAnimState::None;

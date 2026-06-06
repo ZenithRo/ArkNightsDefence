@@ -54,8 +54,18 @@ void ATDBaseTower::Tick(float DeltaTime)
 		Direction.Z = 0.0f;
 		if (!Direction.IsNearlyZero())
 		{
-			FRotator TargetRot = FRotator(0.0f, Direction.Rotation().Yaw, 0.0f);
-			SetActorRotation(FMath::RInterpTo(GetActorRotation(), TargetRot, DeltaTime, 10.0f));
+			// 不旋转Actor, 根据敌人在左/右镜像翻转Scale X
+			float CrossZ = FVector::CrossProduct(GetActorForwardVector(), Direction).Z;
+			FVector Scale = GetActorScale3D();
+			if (CrossZ < 0.0f)
+			{
+				Scale.X = -FMath::Abs(Scale.X);
+			}
+			else
+			{
+				Scale.X = FMath::Abs(Scale.X);
+			}
+			SetActorScale3D(Scale);
 		}
 	}
 }

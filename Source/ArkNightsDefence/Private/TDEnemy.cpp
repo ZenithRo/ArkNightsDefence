@@ -9,6 +9,7 @@
 #include "TimerManager.h"
 #include "SpineSkeletonAnimationComponent.h"
 #include "SpineSkeletonDataAsset.h"
+#include "Engine/DamageEvents.h"
 
 ATDEnemy::ATDEnemy()
 {
@@ -62,6 +63,9 @@ void ATDEnemy::Tick(float DeltaTime)
 
 	if (bIsDead) return;
 
+	// 记录移动前的位置, 用于计算移动方向
+	FVector PreMoveLocation = GetActorLocation();
+
 	// 查找最近的塔
 	FindNearestTower();
 
@@ -77,7 +81,6 @@ void ATDEnemy::Tick(float DeltaTime)
 	}
 	else if (CurrentTargetTower && !CurrentTargetTower->bIsDead)
 	{
-		// 有塔但超出近战范围 → 继续移动
 		if (AnimState == EEnemyAnimState::Attacking || AnimState == EEnemyAnimState::MoveEnding)
 		{
 			PlayAnim(TEXT("Move_Begin"), false);
@@ -87,7 +90,6 @@ void ATDEnemy::Tick(float DeltaTime)
 	}
 	else
 	{
-		// 无目标塔 → 如果在攻击则恢复移动
 		if (AnimState == EEnemyAnimState::Attacking || AnimState == EEnemyAnimState::MoveEnding)
 		{
 			PlayAnim(TEXT("Move_Begin"), false);
@@ -111,6 +113,25 @@ void ATDEnemy::Tick(float DeltaTime)
 		{
 			OnReachedEnd();
 		}
+	}
+
+	// 根据移动方向决定左右翻转 (Y负方向为左→正常, Y正方向为右→镜像)
+	// 仅当Y方向有移动时才改变状态, X方向移动保持当前状态
+	FVector MoveDelta = GetActorLocation() - PreMoveLocation;
+	MoveDelta.Z = 0.0f;
+	if (!MoveDelta.IsNearlyZero())
+	{
+		FVector LocalDir = GetActorTransform().InverseTransformVectorNoScale(MoveDelta);
+		FVector Scale = GetActorScale3D();
+		if (LocalDir.Y > 0.0f)
+		{
+			Scale.Y = -FMath::Abs(Scale.Y);
+		}
+		else if (LocalDir.Y < 0.0f)
+		{
+			Scale.Y = FMath::Abs(Scale.Y);
+		}
+		SetActorScale3D(Scale);
 	}
 }
 

@@ -8,6 +8,7 @@
 #include "TimerManager.h"
 #include "SpineSkeletonAnimationComponent.h"
 #include "SpineSkeletonDataAsset.h"
+#include "Engine/DamageEvents.h"
 
 ATDBaseTower::ATDBaseTower()
 {

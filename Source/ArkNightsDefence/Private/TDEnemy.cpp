@@ -148,7 +148,7 @@ void ATDEnemy::MeleeAttack()
 	if (!CurrentTargetTower || CurrentTargetTower->bIsDead) return;
 	if (AnimState != EEnemyAnimState::Attacking) return;
 
-	CurrentTargetTower->TakeDamage(AttackDamage);
+	CurrentTargetTower->TakeDamage(AttackDamage, FDamageEvent(), nullptr, nullptr);
 }
 
 void ATDEnemy::FindNearestTower()

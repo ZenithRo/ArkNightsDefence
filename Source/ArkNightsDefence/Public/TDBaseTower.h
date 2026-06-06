@@ -38,6 +38,7 @@ protected:
 public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void Destroyed() override;
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UStaticMeshComponent> TowerMesh;
@@ -111,16 +112,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Tower")
 	void Fire();
 
-	UFUNCTION(BlueprintCallable, Category = "Tower")
-	void TakeDamage(float DamageAmount);
+	void Die();
 
 protected:
 	UFUNCTION()
 	void OnAnimComplete(UTrackEntry* Entry);
 
 	void PlayAnim(const FString& AnimName, bool Loop);
-
-	void Die();
 
 private:
 	FTimerHandle FireTimerHandle;

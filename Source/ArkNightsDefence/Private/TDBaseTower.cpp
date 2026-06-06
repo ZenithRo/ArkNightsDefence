@@ -191,9 +191,9 @@ void ATDBaseTower::Fire()
 	CurrentTarget->ApplyDamage(AttackDamage, DamageType);
 }
 
-void ATDBaseTower::TakeDamage(float DamageAmount)
+float ATDBaseTower::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	if (bIsDead) return;
+	if (bIsDead) return 0.0f;
 
 	CurrentHealth -= DamageAmount;
 
@@ -201,6 +201,8 @@ void ATDBaseTower::TakeDamage(float DamageAmount)
 	{
 		Die();
 	}
+
+	return DamageAmount;
 }
 
 void ATDBaseTower::Die()

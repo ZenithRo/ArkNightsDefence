@@ -6,6 +6,8 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "TimerManager.h"
+#include "SpineSkeletonAnimationComponent.h"
+#include "SpineSkeletonDataAsset.h"
 
 ATDBaseTower::ATDBaseTower()
 {
@@ -20,6 +22,9 @@ ATDBaseTower::ATDBaseTower()
 	RangeSphere->SetupAttachment(RootComponent);
 	RangeSphere->SetSphereRadius(AttackRange);
 	RangeSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	SpineAnim = CreateDefaultSubobject<USpineSkeletonAnimationComponent>(TEXT("SpineAnim"));
+	SpineAnim->SetupAttachment(RootComponent);
 }
 
 void ATDBaseTower::BeginPlay()
@@ -33,9 +38,31 @@ void ATDBaseTower::BeginPlay()
 		RangeSphere->SetSphereRadius(AttackRange);
 	}
 
+	if (SpineAnim && SkeletonDataAsset)
+	{
+		SpineAnim->SkeletonData = SkeletonDataAsset;
+		SpineAnim->AnimationComplete.AddDynamic(this, &ATDBaseTower::OnAnimComplete);
+		SpineAnim->SetAnimation(0, TEXT("Start"), false);
+		AnimState = ETowerAnimState::Starting;
+	}
+	else if (SpineAnim)
+	{
+		SpineAnim->SetAutoPlay(false);
+		AnimState = ETowerAnimState::Idle;
+	}
+
 	GetWorldTimerManager().SetTimer(FireTimerHandle, this, &ATDBaseTower::Fire, AttackInterval, true);
 
 	FindTarget();
+}
+
+void ATDBaseTower::Destroyed()
+{
+	if (SpineAnim)
+	{
+		SpineAnim->AnimationComplete.RemoveDynamic(this, &ATDBaseTower::OnAnimComplete);
+	}
+	Super::Destroyed();
 }
 
 void ATDBaseTower::Tick(float DeltaTime)
@@ -54,19 +81,65 @@ void ATDBaseTower::Tick(float DeltaTime)
 		Direction.Z = 0.0f;
 		if (!Direction.IsNearlyZero())
 		{
-			// 将方向转换到塔的局部空间, 判断敌人在Y负半轴(左侧)还是Y正半轴(右侧)
 			FVector LocalDir = GetActorTransform().InverseTransformVectorNoScale(Direction);
 			FVector Scale = GetActorScale3D();
 			if (LocalDir.Y > 0.0f)
 			{
-				Scale.X = -FMath::Abs(Scale.X);
+				Scale.Y = -FMath::Abs(Scale.Y);
 			}
-			else
+			else if (LocalDir.Y < 0.0f)
 			{
-				Scale.X = FMath::Abs(Scale.X);
+				Scale.Y = FMath::Abs(Scale.Y);
 			}
 			SetActorScale3D(Scale);
 		}
+
+		if (AnimState == ETowerAnimState::Idle)
+		{
+			PlayAnim(TEXT("Attack_Start"), false);
+			AnimState = ETowerAnimState::AttackStarting;
+		}
+	}
+	else
+	{
+		if (AnimState == ETowerAnimState::Attacking || AnimState == ETowerAnimState::AttackStarting)
+		{
+			PlayAnim(TEXT("Attack_End"), false);
+			AnimState = ETowerAnimState::AttackEnding;
+		}
+	}
+}
+
+void ATDBaseTower::PlayAnim(const FString& AnimName, bool Loop)
+{
+	if (SpineAnim && SpineAnim->HasAnimation(AnimName))
+	{
+		SpineAnim->SetAnimation(0, AnimName, Loop);
+	}
+}
+
+void ATDBaseTower::OnAnimComplete(UTrackEntry* Entry)
+{
+	switch (AnimState)
+	{
+	case ETowerAnimState::Starting:
+		PlayAnim(TEXT("Idle"), true);
+		AnimState = ETowerAnimState::Idle;
+		break;
+
+	case ETowerAnimState::AttackStarting:
+		PlayAnim(TEXT("Attack_Loop"), true);
+		AnimState = ETowerAnimState::Attacking;
+		break;
+
+	case ETowerAnimState::AttackEnding:
+		PlayAnim(TEXT("Idle"), true);
+		AnimState = ETowerAnimState::Idle;
+		break;
+
+	case ETowerAnimState::Dying:
+		Destroy();
+		break;
 	}
 }
 

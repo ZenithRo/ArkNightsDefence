@@ -8,6 +8,21 @@
 class UStaticMeshComponent;
 class USphereComponent;
 class ATDEnemy;
+class USpineSkeletonAnimationComponent;
+class USpineSkeletonDataAsset;
+class UTrackEntry;
+
+UENUM(BlueprintType)
+enum class ETowerAnimState : uint8
+{
+	None,
+	Starting,
+	Idle,
+	AttackStarting,
+	Attacking,
+	AttackEnding,
+	Dying
+};
 
 UCLASS()
 class ARKNIGHTSDEFENCE_API ATDBaseTower : public AActor
@@ -22,12 +37,22 @@ protected:
 
 public:
 	virtual void Tick(float DeltaTime) override;
+	virtual void Destroyed() override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UStaticMeshComponent> TowerMesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USphereComponent> RangeSphere;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USpineSkeletonAnimationComponent> SpineAnim;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Spine")
+	TObjectPtr<USpineSkeletonDataAsset> SkeletonDataAsset;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Tower|Spine")
+	ETowerAnimState AnimState = ETowerAnimState::None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower")
 	float MaxHealth = 100.0f;
@@ -80,10 +105,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Tower")
 	void Fire();
 
+protected:
+	UFUNCTION()
+	void OnAnimComplete(UTrackEntry* Entry);
+
+	void PlayAnim(const FString& AnimName, bool Loop);
+
 private:
 	FTimerHandle FireTimerHandle;
-
 	int32 GetUpgradeCost() const;
-
 	void ApplyLevelUpStats();
 };

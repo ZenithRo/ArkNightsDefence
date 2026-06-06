@@ -52,13 +52,15 @@ void ATDBaseTower::BeginPlay()
 	if (SpineAnim && SkeletonDataAsset)
 	{
 		SpineAnim->SkeletonData = SkeletonDataAsset;
-		// 设置零混合过渡防止切换重影
+		SpineAnim->AnimationComplete.AddDynamic(this, &ATDBaseTower::OnAnimComplete);
+		// 先调用一次SetAnimation确保内部AnimationState已创建
+		SpineAnim->SetAnimation(0, TEXT("Start"), false);
+		// 再设置零混合过渡, 后续所有切换不再模糊
 		if (SpineAnim->GetAnimationState())
 		{
 			SpineAnim->GetAnimationState()->getData()->setDefaultMix(0.0f);
 		}
-		SpineAnim->AnimationComplete.AddDynamic(this, &ATDBaseTower::OnAnimComplete);
-		SpineAnim->SetAnimation(0, TEXT("Start"), false);
+		// 状态机重置为Starting
 		AnimState = ETowerAnimState::Starting;
 	}
 	else if (SpineAnim)

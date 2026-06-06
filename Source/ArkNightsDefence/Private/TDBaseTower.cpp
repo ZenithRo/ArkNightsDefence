@@ -50,6 +50,11 @@ void ATDBaseTower::BeginPlay()
 		SpineAnim->AnimationComplete.AddDynamic(this, &ATDBaseTower::OnAnimComplete);
 		SpineAnim->SetAnimation(0, TEXT("Start"), false);
 		AnimState = ETowerAnimState::Starting;
+
+		// 默认朝左 (Spine建模默认朝右, Scale.Y为负水平镜像后朝左)
+		FVector Scale = GetActorScale3D();
+		Scale.Y = -FMath::Abs(Scale.Y);
+		SetActorScale3D(Scale);
 	}
 	else if (SpineAnim)
 	{
@@ -89,15 +94,15 @@ void ATDBaseTower::Tick(float DeltaTime)
 		Direction.Z = 0.0f;
 		if (!Direction.IsNearlyZero())
 		{
-			FVector LocalDir = GetActorTransform().InverseTransformVectorNoScale(Direction);
+			// 默认朝左(Scale.Y为负), 目标在右侧(Y>0)镜像朝右, 在左侧(Y<0)维持朝左
 			FVector Scale = GetActorScale3D();
-			if (LocalDir.Y > 0.0f)
-			{
-				Scale.Y = -FMath::Abs(Scale.Y);
-			}
-			else if (LocalDir.Y < 0.0f)
+			if (Direction.Y > 0.0f)
 			{
 				Scale.Y = FMath::Abs(Scale.Y);
+			}
+			else if (Direction.Y < 0.0f)
+			{
+				Scale.Y = -FMath::Abs(Scale.Y);
 			}
 			SetActorScale3D(Scale);
 		}
@@ -119,7 +124,7 @@ void ATDBaseTower::Tick(float DeltaTime)
 		if (AnimState == ETowerAnimState::Idle)
 		{
 			FVector Scale = GetActorScale3D();
-			Scale.Y = FMath::Abs(Scale.Y);
+			Scale.Y = -FMath::Abs(Scale.Y);
 			SetActorScale3D(Scale);
 		}
 	}

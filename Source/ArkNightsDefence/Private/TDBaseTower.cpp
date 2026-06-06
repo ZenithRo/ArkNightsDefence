@@ -125,6 +125,14 @@ void ATDBaseTower::Tick(float DeltaTime)
 			PlayAnim(TEXT("Attack_End"), false);
 			AnimState = ETowerAnimState::AttackEnding;
 		}
+
+		// Idle时恢复默认朝向 (Scale.Y为正)
+		if (AnimState == ETowerAnimState::Idle)
+		{
+			FVector Scale = GetActorScale3D();
+			Scale.Y = FMath::Abs(Scale.Y);
+			SetActorScale3D(Scale);
+		}
 	}
 }
 

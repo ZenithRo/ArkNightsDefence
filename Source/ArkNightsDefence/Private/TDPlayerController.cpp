@@ -57,13 +57,21 @@ void ATDPlayerController::OnClick(const FInputActionValue& Value)
 
 	if (!GM->SpendCost(TowerToDeploy.GetDefaultObject()->CostToDeploy)) return;
 
-	// 扣费成功, 以Hit.Location为中心生成塔, Actor原点精确对齐
+	// 扣费成功, 先以Hit.Location生成塔, 再向下偏移使视觉中心落在点击位置
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	ATDBaseTower* Tower = GetWorld()->SpawnActor<ATDBaseTower>(TowerToDeploy, Hit.Location, FRotator::ZeroRotator, SpawnParams);
 
 	if (Tower)
 	{
+		// 获取塔的包围盒, 偏移Z使包围盒中心对齐Hit.Location
+		FVector Origin, BoxExtent;
+		Tower->GetActorBounds(false, Origin, BoxExtent);
+		float HalfHeight = BoxExtent.Z > 1.0f ? BoxExtent.Z * 0.5f : 50.0f;
+		FVector CenterLoc = Hit.Location;
+		CenterLoc.Z -= HalfHeight;
+		Tower->SetActorLocation(CenterLoc);
+
 		DrawDebugSphere(GetWorld(), Hit.Location, 30.0f, 12, FColor::Green, false, 1.5f);
 	}
 }

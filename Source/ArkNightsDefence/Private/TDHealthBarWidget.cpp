@@ -17,10 +17,10 @@ void UTDHealthBarWidget::NativeConstruct()
 
 		// 创建ProgressBar并添加到CanvasPanel, 锚定四角充满全屏
 		HealthBar = WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), TEXT("HealthBar"));
-		UCanvasPanelSlot* Slot = Root->AddChildToCanvas(HealthBar);
-		Slot->SetAnchors(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
-		Slot->SetOffsets(FMargin(0.0f));
-		Slot->SetAlignment(FVector2D(0.0f, 0.0f));
+		UCanvasPanelSlot* PanelSlot = Root->AddChildToCanvas(HealthBar);
+		PanelSlot->SetAnchors(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
+		PanelSlot->SetOffsets(FMargin(0.0f));
+		PanelSlot->SetAlignment(FVector2D(0.0f, 0.0f));
 
 		HealthBar->SetPercent(Percent);
 		HealthBar->SetFillColorAndOpacity(BarColor);

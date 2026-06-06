@@ -32,9 +32,9 @@ void ATDEnemy::BeginPlay()
 	CurrentHealth = MaxHealth;
 	bIsDead = false;
 
-	// 默认朝左 (Y负方向, Scale.Y为正)
+	// 默认朝左 (Spine建模默认朝右, Scale.Y为负水平镜像后朝左)
 	FVector Scale = GetActorScale3D();
-	Scale.Y = FMath::Abs(Scale.Y);
+	Scale.Y = -FMath::Abs(Scale.Y);
 	SetActorScale3D(Scale);
 
 	if (PathActor)
@@ -119,7 +119,8 @@ void ATDEnemy::Tick(float DeltaTime)
 		}
 	}
 
-	// 仅根据世界空间Y方向决定左右翻转 (Y正方向→镜像, Y负方向→正常)
+	// 仅根据世界空间Y方向决定左右翻转 (默认Scale.Y为负朝左)
+	// 向左移动(MoveDelta.Y<0)保持朝左, 向右移动(MoveDelta.Y>0)镜像朝右
 	FVector MoveDelta = GetActorLocation() - PreMoveLocation;
 	MoveDelta.Z = 0.0f;
 	if (!MoveDelta.IsNearlyZero())
@@ -127,11 +128,11 @@ void ATDEnemy::Tick(float DeltaTime)
 		FVector Scale = GetActorScale3D();
 		if (MoveDelta.Y > 0.0f)
 		{
-			Scale.Y = -FMath::Abs(Scale.Y);
+			Scale.Y = FMath::Abs(Scale.Y);
 		}
 		else if (MoveDelta.Y < 0.0f)
 		{
-			Scale.Y = FMath::Abs(Scale.Y);
+			Scale.Y = -FMath::Abs(Scale.Y);
 		}
 		SetActorScale3D(Scale);
 	}

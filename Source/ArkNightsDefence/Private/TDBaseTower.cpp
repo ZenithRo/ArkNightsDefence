@@ -134,15 +134,11 @@ void ATDBaseTower::PlayAnim(const FString& AnimName, bool Loop)
 {
 	if (SpineAnim && SpineAnim->HasAnimation(AnimName))
 	{
-		// 设置零混合时长防止重影
-		if (auto* State = SpineAnim->GetAnimationState())
+		UTrackEntry* Entry = SpineAnim->SetAnimation(0, AnimName, Loop);
+		if (Entry)
 		{
-			if (auto* StateData = State->getData())
-			{
-				StateData->setDefaultMix(0.0f);
-			}
+			Entry->SetMixDuration(0.0f);
 		}
-		SpineAnim->SetAnimation(0, AnimName, Loop);
 	}
 }
 

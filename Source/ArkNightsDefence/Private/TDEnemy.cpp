@@ -142,14 +142,11 @@ void ATDEnemy::PlayAnim(const FString& AnimName, bool Loop)
 {
 	if (SpineAnim && SpineAnim->HasAnimation(AnimName))
 	{
-		if (auto* State = SpineAnim->GetAnimationState())
+		UTrackEntry* Entry = SpineAnim->SetAnimation(0, AnimName, Loop);
+		if (Entry)
 		{
-			if (auto* StateData = State->getData())
-			{
-				StateData->setDefaultMix(0.0f);
-			}
+			Entry->SetMixDuration(0.0f);
 		}
-		SpineAnim->SetAnimation(0, AnimName, Loop);
 	}
 }
 

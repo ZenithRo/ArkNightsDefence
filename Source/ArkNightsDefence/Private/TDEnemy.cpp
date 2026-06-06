@@ -6,6 +6,7 @@
 #include "Components/WidgetComponent.h"
 #include "TDGameMode.h"
 #include "TDHealthBarWidget.h"
+#include "Blueprint/UserWidget.h"
 
 ATDEnemy::ATDEnemy()
 {
@@ -21,10 +22,9 @@ ATDEnemy::ATDEnemy()
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
 	Mesh->SetupAttachment(Collision);
 
-	// 脚下红色血条
+	// 脚下红色血条 (BeginPlay手动创建Widget)
 	HealthBarComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBar"));
 	HealthBarComp->SetupAttachment(Collision);
-	HealthBarComp->SetWidgetClass(UTDHealthBarWidget::StaticClass());
 	HealthBarComp->SetDrawSize(FVector2D(80.0f, 8.0f));
 	HealthBarComp->SetRelativeLocation(FVector(0.0f, 0.0f, -55.0f));
 	HealthBarComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -35,18 +35,18 @@ void ATDEnemy::BeginPlay()
 	Super::BeginPlay();
 	CurrentHealth = MaxHealth;
 
-	// 强制WidgetComponent立即创建Widget实例, 设置颜色
+	// 手动创建血条Widget并设给WidgetComponent (更可靠)
 	if (HealthBarComp)
 	{
-		HealthBarComp->InitWidget();
-		UTDHealthBarWidget* HB = Cast<UTDHealthBarWidget>(HealthBarComp->GetWidget());
+		UTDHealthBarWidget* HB = CreateWidget<UTDHealthBarWidget>(GetWorld()->GetFirstPlayerController());
 		if (HB)
 		{
 			HB->SetBarColor(FLinearColor(1.0f, 0.1f, 0.1f, 1.0f));
+			HealthBarComp->SetWidget(HB);
 		}
 	}
 
-	// 从PathActor中查找Spline组件并缓存, 避免每帧FindComponent
+	// 从PathActor中查找Spline组件并缓存
 	if (PathActor)
 	{
 		CachedSpline = PathActor->FindComponentByClass<USplineComponent>();

@@ -6,6 +6,7 @@
 #include "TDGameMode.h"
 #include "TDEnemy.h"
 #include "TDHealthBarWidget.h"
+#include "Blueprint/UserWidget.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "TimerManager.h"
@@ -27,10 +28,9 @@ ATDBaseTower::ATDBaseTower()
 	RangeSphere->SetSphereRadius(AttackRange);
 	RangeSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-	// 脚下蓝色血条
+	// 脚下蓝色血条 (BeginPlay手动创建Widget)
 	HealthBarComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBar"));
 	HealthBarComp->SetupAttachment(RootComponent);
-	HealthBarComp->SetWidgetClass(UTDHealthBarWidget::StaticClass());
 	HealthBarComp->SetDrawSize(FVector2D(80.0f, 8.0f));
 	HealthBarComp->SetRelativeLocation(FVector(0.0f, 0.0f, -10.0f));
 	HealthBarComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -43,14 +43,14 @@ void ATDBaseTower::BeginPlay()
 	// 初始化血量
 	CurrentHealth = MaxHealth;
 
-	// 强制WidgetComponent立即创建Widget实例, 设置颜色
+	// 手动创建血条Widget并设给WidgetComponent (更可靠)
 	if (HealthBarComp)
 	{
-		HealthBarComp->InitWidget();
-		UTDHealthBarWidget* HB = Cast<UTDHealthBarWidget>(HealthBarComp->GetWidget());
+		UTDHealthBarWidget* HB = CreateWidget<UTDHealthBarWidget>(GetWorld()->GetFirstPlayerController());
 		if (HB)
 		{
 			HB->SetBarColor(FLinearColor(0.1f, 0.4f, 1.0f, 1.0f));
+			HealthBarComp->SetWidget(HB);
 		}
 	}
 

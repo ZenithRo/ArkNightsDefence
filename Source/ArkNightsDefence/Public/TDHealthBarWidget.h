@@ -5,18 +5,20 @@
 #include "TDHealthBarWidget.generated.h"
 
 class UProgressBar;
+class UCanvasPanel;
 
-// 纯C++血条Widget: 程序化创建ProgressBar, 无需UMG蓝图
+// 纯C++血条Widget: CanvasPanel根+ProgressBar子, 标准UMG布局
 UCLASS()
 class ARKNIGHTSDEFENCE_API UTDHealthBarWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
 public:
-	// 设置血条百分比 (0~1)
 	void SetPercent(float NewPercent);
-	// 设置血条填充颜色
 	void SetBarColor(const FLinearColor& NewColor);
+	void UpdateBar();
+
+	float GetPercent() const { return Percent; }
 
 protected:
 	virtual void NativeConstruct() override;

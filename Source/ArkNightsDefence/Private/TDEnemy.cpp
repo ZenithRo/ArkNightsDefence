@@ -6,6 +6,7 @@
 #include "Components/WidgetComponent.h"
 #include "TDGameMode.h"
 #include "TDHealthBarWidget.h"
+#include "Blueprint/UserWidget.h"
 
 ATDEnemy::ATDEnemy()
 {
@@ -21,10 +22,9 @@ ATDEnemy::ATDEnemy()
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
 	Mesh->SetupAttachment(Collision);
 
-	// 脚下红色血条
+	// 脚下红色血条 (Widget在BeginPlay手动创建并赋值)
 	HealthBarComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBar"));
 	HealthBarComp->SetupAttachment(Collision);
-	HealthBarComp->SetWidgetClass(UTDHealthBarWidget::StaticClass());
 	HealthBarComp->SetDrawSize(FVector2D(80.0f, 8.0f));
 	HealthBarComp->SetRelativeLocation(FVector(0.0f, 0.0f, -55.0f));
 	HealthBarComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -34,6 +34,17 @@ void ATDEnemy::BeginPlay()
 {
 	Super::BeginPlay();
 	CurrentHealth = MaxHealth;
+
+	// 手动创建血条Widget并赋给WidgetComponent (比SetWidgetClass更可靠)
+	if (HealthBarComp)
+	{
+		UTDHealthBarWidget* HB = CreateWidget<UTDHealthBarWidget>(GetWorld());
+		if (HB)
+		{
+			HB->SetBarColor(FLinearColor(1.0f, 0.1f, 0.1f, 1.0f));
+			HealthBarComp->SetWidget(HB);
+		}
+	}
 
 	// 从PathActor中查找Spline组件并缓存, 避免每帧FindComponent
 	if (PathActor)

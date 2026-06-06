@@ -97,7 +97,7 @@ void ATDEnemy::Tick(float DeltaTime)
 		}
 	}
 
-	// 当处于移动相关状态时, 沿Spline前进
+	// 当处于移动相关状态时, 沿Spline前进 (只取位置, 不旋转Actor)
 	if (AnimState == EEnemyAnimState::Moving || AnimState == EEnemyAnimState::MoveBeginning)
 	{
 		if (!CachedSpline) return;
@@ -106,8 +106,7 @@ void ATDEnemy::Tick(float DeltaTime)
 
 		float SplineLength = CachedSpline->GetSplineLength();
 		FVector NewLocation = CachedSpline->GetLocationAtDistanceAlongSpline(DistanceAlongSpline, ESplineCoordinateSpace::World);
-		FRotator NewRotation = CachedSpline->GetRotationAtDistanceAlongSpline(DistanceAlongSpline, ESplineCoordinateSpace::World);
-		SetActorLocationAndRotation(NewLocation, NewRotation);
+		SetActorLocation(NewLocation);
 
 		if (DistanceAlongSpline >= SplineLength)
 		{
@@ -115,19 +114,17 @@ void ATDEnemy::Tick(float DeltaTime)
 		}
 	}
 
-	// 根据移动方向决定左右翻转 (Y负方向为左→正常, Y正方向为右→镜像)
-	// 仅当Y方向有移动时才改变状态, X方向移动保持当前状态
+	// 仅根据世界空间Y方向决定左右翻转 (Y正方向→镜像, Y负方向→正常)
 	FVector MoveDelta = GetActorLocation() - PreMoveLocation;
 	MoveDelta.Z = 0.0f;
 	if (!MoveDelta.IsNearlyZero())
 	{
-		FVector LocalDir = GetActorTransform().InverseTransformVectorNoScale(MoveDelta);
 		FVector Scale = GetActorScale3D();
-		if (LocalDir.Y > 0.0f)
+		if (MoveDelta.Y > 0.0f)
 		{
 			Scale.Y = -FMath::Abs(Scale.Y);
 		}
-		else if (LocalDir.Y < 0.0f)
+		else if (MoveDelta.Y < 0.0f)
 		{
 			Scale.Y = FMath::Abs(Scale.Y);
 		}

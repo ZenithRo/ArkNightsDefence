@@ -24,7 +24,6 @@ ATDBaseTower::ATDBaseTower()
 	RangeSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	SpineAnim = CreateDefaultSubobject<USpineSkeletonAnimationComponent>(TEXT("SpineAnim"));
-	SpineAnim->SetupAttachment(RootComponent);
 }
 
 void ATDBaseTower::BeginPlay()

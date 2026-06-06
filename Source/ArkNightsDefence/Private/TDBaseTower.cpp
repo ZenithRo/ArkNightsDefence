@@ -54,10 +54,10 @@ void ATDBaseTower::Tick(float DeltaTime)
 		Direction.Z = 0.0f;
 		if (!Direction.IsNearlyZero())
 		{
-			// 不旋转Actor, 根据敌人在左/右镜像翻转Scale X
-			float CrossZ = FVector::CrossProduct(GetActorForwardVector(), Direction).Z;
+			// 将方向转换到塔的局部空间, 判断敌人在Y负半轴(左侧)还是Y正半轴(右侧)
+			FVector LocalDir = GetActorTransform().InverseTransformVectorNoScale(Direction);
 			FVector Scale = GetActorScale3D();
-			if (CrossZ < 0.0f)
+			if (LocalDir.Y > 0.0f)
 			{
 				Scale.X = -FMath::Abs(Scale.X);
 			}

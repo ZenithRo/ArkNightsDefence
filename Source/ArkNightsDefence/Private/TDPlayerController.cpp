@@ -40,7 +40,7 @@ void ATDPlayerController::SetupInputComponent()
 	}
 }
 
-// 鼠标点击: 射线检测地面 → SpendCost → SpawnActor生成塔
+// 鼠标点击: 射线检测水平地面 → SpendCost → SpawnActor生成塔
 void ATDPlayerController::OnClick(const FInputActionValue& Value)
 {
 	if (!TowerToDeploy) return;
@@ -48,7 +48,8 @@ void ATDPlayerController::OnClick(const FInputActionValue& Value)
 	FHitResult Hit;
 	GetHitResultUnderCursor(ECC_Visibility, false, Hit);
 
-	if (!Hit.bBlockingHit) return;
+	// 必须击中可视性碰撞, 且撞击面接近水平(法线朝上)
+	if (!Hit.bBlockingHit || Hit.ImpactNormal.Z < 0.5f) return;
 
 	// 尝试扣费
 	ATDGameMode* GM = Cast<ATDGameMode>(GetWorld()->GetAuthGameMode());
@@ -56,8 +57,7 @@ void ATDPlayerController::OnClick(const FInputActionValue& Value)
 
 	if (!GM->SpendCost(TowerToDeploy.GetDefaultObject()->CostToDeploy)) return;
 
-	// 扣费成功, 在点击位置生成塔, Actor原点精确对齐Hit.Location
-	// (网格体在蓝图BP_Guard中通过Relative Location Z抬升)
+	// 扣费成功, 以Hit.Location为中心生成塔, Actor原点精确对齐
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	ATDBaseTower* Tower = GetWorld()->SpawnActor<ATDBaseTower>(TowerToDeploy, Hit.Location, FRotator::ZeroRotator, SpawnParams);

@@ -6,9 +6,10 @@
 
 class UInputMappingContext;
 class UInputAction;
+class ATDBaseTower;
 struct FInputActionValue;
 
-// 玩家控制器: 注册EnhancedInput映射, 处理鼠标点击
+// 玩家控制器: 注册EnhancedInput映射, 鼠标点击部署塔
 UCLASS()
 class ARKNIGHTSDEFENCE_API ATDPlayerController : public APlayerController
 {
@@ -27,6 +28,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TObjectPtr<UInputAction> ClickAction;
 
-	// 鼠标点击回调: 射线检测 + Debug红球 + 坐标打印
+	// 当前要部署的塔蓝图类 (在BP_TDPlayerController中指定)
+	UPROPERTY(EditDefaultsOnly, Category = "Tower")
+	TSubclassOf<ATDBaseTower> TowerToDeploy;
+
+	// 鼠标点击回调: 扣费 + 生成塔
 	void OnClick(const FInputActionValue& Value);
 };

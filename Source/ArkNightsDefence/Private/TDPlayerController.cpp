@@ -50,22 +50,19 @@ void ATDPlayerController::OnClick(const FInputActionValue& Value)
 
 	if (!Hit.bBlockingHit) return;
 
-	FVector Location = Hit.Location;
-
 	// 尝试扣费
 	ATDGameMode* GM = Cast<ATDGameMode>(GetWorld()->GetAuthGameMode());
 	if (!GM) return;
 
 	if (!GM->SpendCost(TowerToDeploy.GetDefaultObject()->CostToDeploy)) return;
 
-	// 扣费成功, 在点击位置生成塔, Z下沉使塔身正好贴地
+	// 扣费成功, 在点击位置生成塔, 直接使用Hit.Location吸附到地面碰撞
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	Location.Z -= 50.0f;
-	ATDBaseTower* Tower = GetWorld()->SpawnActor<ATDBaseTower>(TowerToDeploy, Location, FRotator::ZeroRotator, SpawnParams);
+	ATDBaseTower* Tower = GetWorld()->SpawnActor<ATDBaseTower>(TowerToDeploy, Hit.Location, FRotator::ZeroRotator, SpawnParams);
 
 	if (Tower)
 	{
-		DrawDebugSphere(GetWorld(), Location, 30.0f, 12, FColor::Green, false, 1.5f);
+		DrawDebugSphere(GetWorld(), Hit.Location, 30.0f, 12, FColor::Green, false, 1.5f);
 	}
 }

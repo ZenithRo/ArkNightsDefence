@@ -51,6 +51,9 @@ void ATDBaseTower::BeginPlay()
 
 	// 启动攻击定时器: 每隔AttackInterval秒调用Fire
 	GetWorldTimerManager().SetTimer(FireTimerHandle, this, &ATDBaseTower::Fire, AttackInterval, true);
+
+	// 立即搜索第一个目标, 不等下一帧Tick
+	FindTarget();
 }
 
 void ATDBaseTower::Tick(float DeltaTime)

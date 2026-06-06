@@ -32,6 +32,11 @@ void ATDEnemy::BeginPlay()
 	CurrentHealth = MaxHealth;
 	bIsDead = false;
 
+	// 默认朝左 (Y负方向, Scale.Y为正)
+	FVector Scale = GetActorScale3D();
+	Scale.Y = FMath::Abs(Scale.Y);
+	SetActorScale3D(Scale);
+
 	if (PathActor)
 	{
 		CachedSpline = PathActor->FindComponentByClass<USplineComponent>();

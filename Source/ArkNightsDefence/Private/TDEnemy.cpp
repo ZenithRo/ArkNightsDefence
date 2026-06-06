@@ -24,6 +24,11 @@ ATDEnemy::ATDEnemy()
 	Mesh->SetupAttachment(Collision);
 
 	SpineAnim = CreateDefaultSubobject<USpineSkeletonAnimationComponent>(TEXT("SpineAnim"));
+
+	// 构造时设默认朝左, 避免被Blueprint Class Defaults覆盖
+	FVector Scale = GetActorScale3D();
+	Scale.Y = -FMath::Abs(Scale.Y);
+	SetActorScale3D(Scale);
 }
 
 void ATDEnemy::BeginPlay()
@@ -31,11 +36,6 @@ void ATDEnemy::BeginPlay()
 	Super::BeginPlay();
 	CurrentHealth = MaxHealth;
 	bIsDead = false;
-
-	// 默认朝左 (Spine建模默认朝右, Scale.Y为负水平镜像后朝左)
-	FVector Scale = GetActorScale3D();
-	Scale.Y = -FMath::Abs(Scale.Y);
-	SetActorScale3D(Scale);
 
 	if (PathActor)
 	{
@@ -45,6 +45,11 @@ void ATDEnemy::BeginPlay()
 	if (SpineAnim && SkeletonDataAsset)
 	{
 		SpineAnim->SkeletonData = SkeletonDataAsset;
+		// 设置零混合过渡防止切换重影
+		if (SpineAnim->GetAnimationState())
+		{
+			SpineAnim->GetAnimationState()->getData()->setDefaultMix(0.0f);
+		}
 		SpineAnim->AnimationComplete.AddDynamic(this, &ATDEnemy::OnAnimComplete);
 		PlayAnim(TEXT("Move_Begin"), false);
 		AnimState = EEnemyAnimState::MoveBeginning;
@@ -142,11 +147,7 @@ void ATDEnemy::PlayAnim(const FString& AnimName, bool Loop)
 {
 	if (SpineAnim && SpineAnim->HasAnimation(AnimName))
 	{
-		UTrackEntry* Entry = SpineAnim->SetAnimation(0, AnimName, Loop);
-		if (Entry)
-		{
-			Entry->SetMixDuration(0.0f);
-		}
+		SpineAnim->SetAnimation(0, AnimName, Loop);
 	}
 }
 

@@ -30,6 +30,11 @@ ATDBaseTower::ATDBaseTower()
 	MeleeRangeSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	SpineAnim = CreateDefaultSubobject<USpineSkeletonAnimationComponent>(TEXT("SpineAnim"));
+
+	// 构造时设默认朝左, 避免被Blueprint Class Defaults覆盖
+	FVector Scale = GetActorScale3D();
+	Scale.Y = -FMath::Abs(Scale.Y);
+	SetActorScale3D(Scale);
 }
 
 void ATDBaseTower::BeginPlay()
@@ -47,14 +52,14 @@ void ATDBaseTower::BeginPlay()
 	if (SpineAnim && SkeletonDataAsset)
 	{
 		SpineAnim->SkeletonData = SkeletonDataAsset;
+		// 设置零混合过渡防止切换重影
+		if (SpineAnim->GetAnimationState())
+		{
+			SpineAnim->GetAnimationState()->getData()->setDefaultMix(0.0f);
+		}
 		SpineAnim->AnimationComplete.AddDynamic(this, &ATDBaseTower::OnAnimComplete);
 		SpineAnim->SetAnimation(0, TEXT("Start"), false);
 		AnimState = ETowerAnimState::Starting;
-
-		// 默认朝左 (Spine建模默认朝右, Scale.Y为负水平镜像后朝左)
-		FVector Scale = GetActorScale3D();
-		Scale.Y = -FMath::Abs(Scale.Y);
-		SetActorScale3D(Scale);
 	}
 	else if (SpineAnim)
 	{
@@ -134,11 +139,7 @@ void ATDBaseTower::PlayAnim(const FString& AnimName, bool Loop)
 {
 	if (SpineAnim && SpineAnim->HasAnimation(AnimName))
 	{
-		UTrackEntry* Entry = SpineAnim->SetAnimation(0, AnimName, Loop);
-		if (Entry)
-		{
-			Entry->SetMixDuration(0.0f);
-		}
+		SpineAnim->SetAnimation(0, AnimName, Loop);
 	}
 }
 

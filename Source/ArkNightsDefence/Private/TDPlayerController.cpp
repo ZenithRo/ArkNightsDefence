@@ -56,7 +56,8 @@ void ATDPlayerController::OnClick(const FInputActionValue& Value)
 
 	if (!GM->SpendCost(TowerToDeploy.GetDefaultObject()->CostToDeploy)) return;
 
-	// 扣费成功, 在点击位置生成塔, 直接使用Hit.Location吸附到地面碰撞
+	// 扣费成功, 在点击位置生成塔, Actor原点精确对齐Hit.Location
+	// (网格体在蓝图BP_Guard中通过Relative Location Z抬升)
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	ATDBaseTower* Tower = GetWorld()->SpawnActor<ATDBaseTower>(TowerToDeploy, Hit.Location, FRotator::ZeroRotator, SpawnParams);

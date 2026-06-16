@@ -61,31 +61,31 @@ void ATDBaseTower::SetGridCoordinate(int32 Col, int32 Row)
 	GridRow = Row;
 }
 
-void ATDBaseTower::SetDeployDirection(EDirection NewDir)
+void ATDBaseTower::SetDeployDirection(EDeployDirection NewDir)
 {
 	DeployDirection = NewDir;
 
 	switch (NewDir)
 	{
-	case EDirection::RIGHT:
+	case EDeployDirection::RIGHT:
 		SpineAnim->SetHiddenInGame(false);
 		SpineAnimBack->SetHiddenInGame(true);
 		SetActorScale3D(FVector(1.0f, 1.0f, 1.0f));
 		break;
 
-	case EDirection::LEFT:
+	case EDeployDirection::LEFT:
 		SpineAnim->SetHiddenInGame(false);
 		SpineAnimBack->SetHiddenInGame(true);
 		SetActorScale3D(FVector(1.0f, -1.0f, 1.0f));
 		break;
 
-	case EDirection::UP:
+	case EDeployDirection::UP:
 		SpineAnim->SetHiddenInGame(true);
 		SpineAnimBack->SetHiddenInGame(false);
 		SetActorScale3D(FVector(1.0f, 1.0f, 1.0f));
 		break;
 
-	case EDirection::DOWN:
+	case EDeployDirection::DOWN:
 		SpineAnim->SetHiddenInGame(false);
 		SpineAnimBack->SetHiddenInGame(true);
 		SetActorScale3D(FVector(1.0f, -1.0f, 1.0f));
@@ -247,7 +247,7 @@ void ATDBaseTower::Tick(float DeltaTime)
 
 void ATDBaseTower::PlayAnim(const FString& AnimName, bool Loop)
 {
-	if (DeployDirection == EDirection::UP)
+	if (DeployDirection == EDeployDirection::UP)
 	{
 		PlayBackAnim(AnimName, Loop);
 		return;
@@ -307,19 +307,19 @@ bool ATDBaseTower::IsEnemyInRangeCells(ATDEnemy* Enemy) const
 	int32 RotCol = RelCol, RotRow = RelRow;
 	switch (DeployDirection)
 	{
-	case EDirection::RIGHT:
+	case EDeployDirection::RIGHT:
 		// (dx, dy) 不变
 		break;
-	case EDirection::LEFT:
+	case EDeployDirection::LEFT:
 		// (dx, -dy)
 		RotRow = -RelRow;
 		break;
-	case EDirection::UP:
+	case EDeployDirection::UP:
 		// (dy, dx) 交换
 		RotCol = RelRow;
 		RotRow = RelCol;
 		break;
-	case EDirection::DOWN:
+	case EDeployDirection::DOWN:
 		// (-dy, dx)
 		RotCol = -RelRow;
 		RotRow = RelCol;

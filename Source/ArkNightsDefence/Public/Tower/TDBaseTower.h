@@ -124,7 +124,7 @@ public:
 
 	// 部署方向
 	UPROPERTY(BlueprintReadOnly, Category = "Tower")
-	EDirection DeployDirection = EDirection::RIGHT;
+	EDeployDirection DeployDirection = EDeployDirection::RIGHT;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Tower")
 	TObjectPtr<ATDEnemy> CurrentTarget;
@@ -142,7 +142,7 @@ public:
 
 	void SetGridCoordinate(int32 Col, int32 Row);
 
-	void SetDeployDirection(EDirection NewDir);
+	void SetDeployDirection(EDeployDirection NewDir);
 
 	int32 GridCol = -1;
 	int32 GridRow = -1;

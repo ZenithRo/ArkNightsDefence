@@ -48,18 +48,18 @@ void ATDPlayerController::Tick(float DeltaTime)
 	UpdatePreview();
 }
 
-EDirection ATDPlayerController::GetDirectionFromMouse(FVector GridWorldCenter, FVector MouseWorldPos) const
+EDeployDirection ATDPlayerController::GetDirectionFromMouse(FVector GridWorldCenter, FVector MouseWorldPos) const
 {
 	float dx = MouseWorldPos.X - GridWorldCenter.X;
 	float dy = MouseWorldPos.Y - GridWorldCenter.Y;
 
 	if (FMath::Abs(dx) > FMath::Abs(dy))
 	{
-		return dx > 0.0f ? EDirection::UP : EDirection::DOWN;
+		return dx > 0.0f ? EDeployDirection::UP : EDeployDirection::DOWN;
 	}
 	else
 	{
-		return dy > 0.0f ? EDirection::RIGHT : EDirection::LEFT;
+		return dy > 0.0f ? EDeployDirection::RIGHT : EDeployDirection::LEFT;
 	}
 }
 

@@ -43,12 +43,12 @@ protected:
 private:
 	void UpdatePreview();
 
-	EDirection GetDirectionFromMouse(FVector GridWorldCenter, FVector MouseWorldPos) const;
+	EDeployDirection GetDirectionFromMouse(FVector GridWorldCenter, FVector MouseWorldPos) const;
 
 	TObjectPtr<ATDDeploymentPreviewActor> PreviewActor;
 
 	int32 HoveredCol = -1;
 	int32 HoveredRow = -1;
-	EDirection HoveredDirection = EDirection::RIGHT;
+	EDeployDirection HoveredDirection = EDeployDirection::RIGHT;
 	bool bHasValidHover = false;
 };

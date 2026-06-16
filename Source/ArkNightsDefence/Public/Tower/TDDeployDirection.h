@@ -4,7 +4,7 @@
 #include "TDDeployDirection.generated.h"
 
 UENUM(BlueprintType)
-enum class EDirection : uint8
+enum class EDeployDirection : uint8
 {
 	RIGHT	UMETA(DisplayName = "朝右"),
 	LEFT	UMETA(DisplayName = "朝左"),

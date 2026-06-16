@@ -31,7 +31,7 @@ ATDEnemy::ATDEnemy()
 	HealthBarComp->SetupAttachment(RootComponent);
 	HealthBarComp->SetWidgetSpace(EWidgetSpace::Screen);
 	HealthBarComp->SetDrawSize(FVector2D(80.0f, 8.0f));
-	HealthBarComp->SetRelativeLocation(FVector(0.0f, 0.0f, 70.0f));
+	HealthBarComp->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
 	HealthBarComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	HealthBarComp->SetWidgetClass(UTDHealthBarWidget::StaticClass());
 

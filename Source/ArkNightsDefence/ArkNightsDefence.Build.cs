@@ -21,8 +21,8 @@ public class ArkNightsDefence : ModuleRules
             "SpinePlugin"   // Spine动画插件
         });
 
-        // 私有依赖模块
-        PrivateDependencyModuleNames.AddRange(new string[] { "SlateCore" });
+        // 私有依赖模块 (Slate/SlateCore用于纯C++ Widget)
+        PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 
         // Uncomment if you are using Slate UI
         // PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

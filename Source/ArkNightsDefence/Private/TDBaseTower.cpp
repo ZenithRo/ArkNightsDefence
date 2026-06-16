@@ -37,7 +37,7 @@ ATDBaseTower::ATDBaseTower()
 	HealthBarComp->SetupAttachment(RootComponent);
 	HealthBarComp->SetWidgetSpace(EWidgetSpace::Screen);
 	HealthBarComp->SetDrawSize(FVector2D(120.0f, 10.0f));
-	HealthBarComp->SetRelativeLocation(FVector(0.0f, 0.0f, 80.0f));
+	HealthBarComp->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
 	HealthBarComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	HealthBarComp->SetWidgetClass(UTDHealthBarWidget::StaticClass());
 
@@ -88,7 +88,7 @@ void ATDBaseTower::BeginPlay()
 	{
 		if (UTDHealthBarWidget* HBWidget = Cast<UTDHealthBarWidget>(HealthBarComp->GetWidget()))
 		{
-			HBWidget->SetBarColor(FLinearColor::Green);
+			HBWidget->SetBarColor(FLinearColor::Blue);
 		}
 	}
 }

@@ -11,7 +11,7 @@ TSharedRef<SWidget> UTDHealthBarWidget::RebuildWidget()
 
 	MyProgressBar = SNew(SProgressBar)
 		.Percent(1.0f)
-		.FillColorAndOpacity(FLinearColor::Green)
+		.FillColorAndOpacity(FLinearColor::Blue)
 		.BackgroundImage(nullptr);
 
 	Background->SetContent(MyProgressBar.ToSharedRef());

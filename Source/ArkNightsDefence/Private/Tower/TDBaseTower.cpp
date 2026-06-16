@@ -303,9 +303,32 @@ bool ATDBaseTower::IsEnemyInRangeCells(ATDEnemy* Enemy) const
 	int32 RelCol = EnemyCol - GridCol;
 	int32 RelRow = EnemyRow - GridRow;
 
+	// 根据部署方向旋转相对坐标
+	int32 RotCol = RelCol, RotRow = RelRow;
+	switch (DeployDirection)
+	{
+	case EDirection::RIGHT:
+		// (dx, dy) 不变
+		break;
+	case EDirection::LEFT:
+		// (dx, -dy)
+		RotRow = -RelRow;
+		break;
+	case EDirection::UP:
+		// (dy, dx) 交换
+		RotCol = RelRow;
+		RotRow = RelCol;
+		break;
+	case EDirection::DOWN:
+		// (-dy, dx)
+		RotCol = -RelRow;
+		RotRow = RelCol;
+		break;
+	}
+
 	for (const FAttackRangeCell& Cell : AttackRangeCells)
 	{
-		if (Cell.DeltaX == RelCol && Cell.DeltaY == RelRow)
+		if (Cell.DeltaX == RotCol && Cell.DeltaY == RotRow)
 		{
 			return true;
 		}

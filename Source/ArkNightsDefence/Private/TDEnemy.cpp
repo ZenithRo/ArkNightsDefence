@@ -71,6 +71,7 @@ void ATDEnemy::BeginPlay()
 	// 初始化血条(红色)
 	if (HealthBarComp)
 	{
+		HealthBarComp->InitWidget();
 		if (UTDHealthBarWidget* HBWidget = Cast<UTDHealthBarWidget>(HealthBarComp->GetWidget()))
 		{
 			HBWidget->SetBarColor(FLinearColor::Red);

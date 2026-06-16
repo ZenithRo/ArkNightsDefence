@@ -83,12 +83,13 @@ void ATDBaseTower::BeginPlay()
 
 	FindTarget();
 
-	// 初始化血条(绿色)
+	// 初始化血条(浅蓝色)
 	if (HealthBarComp)
 	{
+		HealthBarComp->InitWidget();
 		if (UTDHealthBarWidget* HBWidget = Cast<UTDHealthBarWidget>(HealthBarComp->GetWidget()))
 		{
-			HBWidget->SetBarColor(FLinearColor(0.3f, 0.6f, 1.0f)); // 浅蓝色
+			HBWidget->SetBarColor(FLinearColor(0.3f, 0.6f, 1.0f));
 		}
 	}
 }

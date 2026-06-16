@@ -24,5 +24,6 @@ private:
 	TOptional<float> GetPercent() const;
 
 	TSharedPtr<SProgressBar> MyProgressBar;
+	FLinearColor DesiredColor = FLinearColor::Red;
 	float CurrentPercent = 1.0f;
 };

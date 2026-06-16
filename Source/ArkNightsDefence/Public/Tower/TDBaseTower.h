@@ -5,6 +5,7 @@
 #include "Enemy/TDEnemy.h"
 #include "Tower/TDAttackRange.h"
 #include "Tower/TDDeployDirection.h"
+#include "Grid/TDGridEnums.h"
 #include "TDBaseTower.generated.h"
 
 class UStaticMeshComponent;
@@ -125,6 +126,10 @@ public:
 	// 部署方向
 	UPROPERTY(BlueprintReadOnly, Category = "Tower")
 	EDeployDirection DeployDirection = EDeployDirection::RIGHT;
+
+	// 部署类型(地面/高台/均可)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Tower")
+	ETowerPlacement PlacementType = ETowerPlacement::GROUND_ONLY;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Tower")
 	TObjectPtr<ATDEnemy> CurrentTarget;

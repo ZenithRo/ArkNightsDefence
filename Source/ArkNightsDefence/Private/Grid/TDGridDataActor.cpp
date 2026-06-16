@@ -63,5 +63,6 @@ void ATDGridDataActor::ApplyToGridManager(UTDGridManager* Manager) const
 	for (int32 i = 0; i < Cells.Num() && i < Manager->Cells.Num(); i++)
 	{
 		Manager->Cells[i].bDeployable = Cells[i].bDeployable;
+		Manager->Cells[i].TileType = Cells[i].TileType;
 	}
 }

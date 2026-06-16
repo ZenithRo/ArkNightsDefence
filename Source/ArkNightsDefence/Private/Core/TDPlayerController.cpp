@@ -5,6 +5,7 @@
 #include "Core/TDGameMode.h"
 #include "Tower/TDBaseTower.h"
 #include "Grid/TDGridManager.h"
+#include "Grid/TDGridEnums.h"
 #include "Deployment/TDDeploymentPreviewActor.h"
 #include "Engine/World.h"
 #include "CollisionQueryParams.h"
@@ -81,7 +82,11 @@ void ATDPlayerController::UpdatePreview()
 		return;
 	}
 
-	bool bCanDeploy = Grid->CanDeployAt(Col, Row) && TowerToDeploy && GM->Cost >= TowerToDeploy.GetDefaultObject()->CostToDeploy;
+	// 根据塔的部署类型检查
+	bool bCanDeploy = TowerToDeploy
+		? Grid->CanDeployAtWithPlacement(Col, Row, TowerToDeploy.GetDefaultObject()->PlacementType)
+		: Grid->CanDeployAt(Col, Row);
+	bCanDeploy = bCanDeploy && GM->Cost >= TowerToDeploy.GetDefaultObject()->CostToDeploy;
 
 	// 计算鼠标在格子上的方向
 	FVector CamLoc;
@@ -128,7 +133,7 @@ void ATDPlayerController::OnClick(const FInputActionValue& Value)
 	UTDGridManager* Grid = GM->GridManager;
 
 	if (!bHasValidHover) return;
-	if (!Grid->CanDeployAt(HoveredCol, HoveredRow)) return;
+	if (!Grid->CanDeployAtWithPlacement(HoveredCol, HoveredRow, TowerToDeploy.GetDefaultObject()->PlacementType)) return;
 
 	if (!GM->SpendCost(TowerToDeploy.GetDefaultObject()->CostToDeploy)) return;
 

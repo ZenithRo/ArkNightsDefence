@@ -52,7 +52,35 @@ bool UTDGridManager::CanDeployAt(int32 Col, int32 Row) const
 	if (!IsValidCell(Col, Row)) return false;
 
 	const FGridCellData& Cell = Cells[GetIndex(Col, Row)];
-	return Cell.bDeployable && !Cell.bOccupied;
+	return Cell.bDeployable && !Cell.bOccupied && Cell.TileType != ETileType::HOLE && Cell.TileType != ETileType::BLOCKED;
+}
+
+bool UTDGridManager::CanDeployAtWithPlacement(int32 Col, int32 Row, ETowerPlacement Placement) const
+{
+	if (!IsValidCell(Col, Row)) return false;
+
+	const FGridCellData& Cell = Cells[GetIndex(Col, Row)];
+	if (!Cell.bDeployable || Cell.bOccupied) return false;
+
+	// HOLE和BLOCKED永远不可部署
+	if (Cell.TileType == ETileType::HOLE || Cell.TileType == ETileType::BLOCKED)
+	{
+		return false;
+	}
+
+	// 地面格: 仅GROUND_ONLY或ANY可部署
+	if (Cell.TileType == ETileType::GROUND)
+	{
+		return Placement == ETowerPlacement::GROUND_ONLY || Placement == ETowerPlacement::ANY;
+	}
+
+	// 高台格: 仅HIGHLAND_ONLY或ANY可部署
+	if (Cell.TileType == ETileType::HIGHLAND)
+	{
+		return Placement == ETowerPlacement::HIGHLAND_ONLY || Placement == ETowerPlacement::ANY;
+	}
+
+	return true;
 }
 
 bool UTDGridManager::TryOccupy(int32 Col, int32 Row)
@@ -61,6 +89,21 @@ bool UTDGridManager::TryOccupy(int32 Col, int32 Row)
 
 	Cells[GetIndex(Col, Row)].bOccupied = true;
 	return true;
+}
+
+bool UTDGridManager::IsHoleCell(int32 Col, int32 Row) const
+{
+	if (!IsValidCell(Col, Row)) return false;
+	return Cells[GetIndex(Col, Row)].TileType == ETileType::HOLE;
+}
+
+FBox2D UTDGridManager::GetHoleDeathBox(int32 Col, int32 Row) const
+{
+	FVector Center = GridToWorld(Col, Row);
+	float HalfSize = CellSize * 0.9f * 0.5f; // 90% / 2
+	FVector Min = Center - FVector(HalfSize, HalfSize, 0.0f);
+	FVector Max = Center + FVector(HalfSize, HalfSize, 0.0f);
+	return FBox2D(FVector2D(Min.X, Min.Y), FVector2D(Max.X, Max.Y));
 }
 
 void UTDGridManager::Free(int32 Col, int32 Row)

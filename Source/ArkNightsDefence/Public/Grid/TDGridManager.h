@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
+#include "Grid/TDGridEnums.h"
 #include "TDGridManager.generated.h"
 
 namespace TDGridChannels
@@ -18,7 +19,8 @@ enum class ETileType : uint8
 	HIGHLAND = 1 << 1,
 	BLOCKED  = 1 << 2,
 	START    = 1 << 3,
-	END      = 1 << 4
+	END      = 1 << 4,
+	HOLE     = 1 << 5	UMETA(DisplayName = "地穴死亡格")
 };
 
 USTRUCT(BlueprintType)
@@ -51,11 +53,22 @@ public:
 
 	bool CanDeployAt(int32 Col, int32 Row) const;
 
+	// 带部署类型检查的新版本
+	UFUNCTION(BlueprintCallable, Category = "Grid")
+	bool CanDeployAtWithPlacement(int32 Col, int32 Row, ETowerPlacement Placement) const;
+
 	bool TryOccupy(int32 Col, int32 Row);
 
 	void Free(int32 Col, int32 Row);
 
 	bool GetDeployLocation(const APlayerController* PC, FVector& OutLocation, int32& OutCol, int32& OutRow) const;
+
+	// 地穴死亡格相关
+	UFUNCTION(BlueprintCallable, Category = "Grid")
+	bool IsHoleCell(int32 Col, int32 Row) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Grid")
+	FBox2D GetHoleDeathBox(int32 Col, int32 Row) const;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid")
 	TArray<FGridCellData> Cells;

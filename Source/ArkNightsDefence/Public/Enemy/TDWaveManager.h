@@ -39,8 +39,13 @@ class ARKNIGHTSDEFENCE_API ATDWaveManager : public AActor
     GENERATED_BODY()
 
 public:
+    ATDWaveManager();
+
     UPROPERTY(EditDefaultsOnly, Category = "Waves")
     TArray<FWaveData> WaveConfigs;
+
+    UPROPERTY(EditAnywhere, Category = "Paths")
+    TArray<TObjectPtr<AActor>> PathActors;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Waves")
     int32 CurrentWaveIndex = 0;
@@ -51,6 +56,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Waves")
     void SpawnWave(int32 WaveIndex);
 
+    UFUNCTION(BlueprintCallable, Category = "Waves")
+    void SpawnEnemy(TSubclassOf<ATDEnemy> EnemyClass, int32 PathIndex);
+
 protected:
     virtual void BeginPlay() override;
+
+private:
+    void SpawnNextWave();
 };

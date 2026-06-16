@@ -9,6 +9,8 @@
 #include "SpineSkeletonAnimationComponent.h"
 #include "SpineSkeletonDataAsset.h"
 #include "Engine/DamageEvents.h"
+#include "Components/WidgetComponent.h"
+#include "TDHealthBarWidget.h"
 
 ATDBaseTower::ATDBaseTower()
 {
@@ -30,6 +32,13 @@ ATDBaseTower::ATDBaseTower()
 	MeleeRangeSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	SpineAnim = CreateDefaultSubobject<USpineSkeletonAnimationComponent>(TEXT("SpineAnim"));
+
+	HealthBarComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBarComp"));
+	HealthBarComp->SetupAttachment(RootComponent);
+	HealthBarComp->SetWidgetSpace(EWidgetSpace::Screen);
+	HealthBarComp->SetDrawSize(FVector2D(120.0f, 10.0f));
+	HealthBarComp->SetRelativeLocation(FVector(0.0f, 0.0f, 80.0f));
+	HealthBarComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	// 构造时设默认朝左, 避免被Blueprint Class Defaults覆盖
 	FVector Scale = GetActorScale3D();
@@ -72,6 +81,17 @@ void ATDBaseTower::BeginPlay()
 	GetWorldTimerManager().SetTimer(FireTimerHandle, this, &ATDBaseTower::Fire, AttackInterval, true);
 
 	FindTarget();
+
+	// 初始化血条
+	if (HealthBarComp)
+	{
+		UTDHealthBarWidget* HBWidget = CreateWidget<UTDHealthBarWidget>(GetWorld(), UTDHealthBarWidget::StaticClass());
+		if (HBWidget)
+		{
+			HBWidget->SetBarColor(FLinearColor::Green);
+			HealthBarComp->SetWidget(HBWidget);
+		}
+	}
 }
 
 void ATDBaseTower::Destroyed()
@@ -88,6 +108,16 @@ void ATDBaseTower::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	if (bIsDead) return;
+
+	// 更新血条
+	if (HealthBarComp)
+	{
+		UTDHealthBarWidget* HBWidget = Cast<UTDHealthBarWidget>(HealthBarComp->GetWidget());
+		if (HBWidget && MaxHealth > 0.0f)
+		{
+			HBWidget->SetHealthPercent(CurrentHealth / MaxHealth);
+		}
+	}
 
 	if (!CurrentTarget || CurrentTarget->CurrentHealth <= 0.0f ||
 		FVector::Dist(GetActorLocation(), CurrentTarget->GetActorLocation()) > AttackRange)
@@ -224,6 +254,11 @@ void ATDBaseTower::Die()
 	bIsDead = true;
 
 	GetWorldTimerManager().ClearTimer(FireTimerHandle);
+
+	if (HealthBarComp)
+	{
+		HealthBarComp->SetVisibility(false);
+	}
 
 	if (SpineAnim && SpineAnim->HasAnimation(TEXT("Die")))
 	{

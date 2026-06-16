@@ -10,6 +10,8 @@
 #include "SpineSkeletonAnimationComponent.h"
 #include "SpineSkeletonDataAsset.h"
 #include "Engine/DamageEvents.h"
+#include "Components/WidgetComponent.h"
+#include "TDHealthBarWidget.h"
 
 ATDEnemy::ATDEnemy()
 {
@@ -24,6 +26,13 @@ ATDEnemy::ATDEnemy()
 	Mesh->SetupAttachment(Collision);
 
 	SpineAnim = CreateDefaultSubobject<USpineSkeletonAnimationComponent>(TEXT("SpineAnim"));
+
+	HealthBarComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBarComp"));
+	HealthBarComp->SetupAttachment(RootComponent);
+	HealthBarComp->SetWidgetSpace(EWidgetSpace::Screen);
+	HealthBarComp->SetDrawSize(FVector2D(80.0f, 8.0f));
+	HealthBarComp->SetRelativeLocation(FVector(0.0f, 0.0f, 70.0f));
+	HealthBarComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	// 构造时设默认朝左, 避免被Blueprint Class Defaults覆盖
 	FVector Scale = GetActorScale3D();
@@ -57,6 +66,17 @@ void ATDEnemy::BeginPlay()
 	}
 
 	GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &ATDEnemy::MeleeAttack, AttackInterval, true);
+
+	// 初始化血条(红色)
+	if (HealthBarComp)
+	{
+		UTDHealthBarWidget* HBWidget = CreateWidget<UTDHealthBarWidget>(GetWorld(), UTDHealthBarWidget::StaticClass());
+		if (HBWidget)
+		{
+			HBWidget->SetBarColor(FLinearColor::Red);
+			HealthBarComp->SetWidget(HBWidget);
+		}
+	}
 }
 
 void ATDEnemy::Destroyed()
@@ -73,6 +93,16 @@ void ATDEnemy::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	if (bIsDead) return;
+
+	// 更新血条
+	if (HealthBarComp)
+	{
+		UTDHealthBarWidget* HBWidget = Cast<UTDHealthBarWidget>(HealthBarComp->GetWidget());
+		if (HBWidget && MaxHealth > 0.0f)
+		{
+			HBWidget->SetHealthPercent(CurrentHealth / MaxHealth);
+		}
+	}
 
 	// 记录移动前的位置, 用于计算移动方向
 	FVector PreMoveLocation = GetActorLocation();
@@ -240,6 +270,11 @@ void ATDEnemy::Die()
 	bIsDead = true;
 
 	GetWorldTimerManager().ClearTimer(AttackTimerHandle);
+
+	if (HealthBarComp)
+	{
+		HealthBarComp->SetVisibility(false);
+	}
 
 	ATDGameMode* GM = Cast<ATDGameMode>(GetWorld()->GetAuthGameMode());
 	if (GM)

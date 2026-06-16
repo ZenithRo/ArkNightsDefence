@@ -11,6 +11,7 @@ class USpineSkeletonAnimationComponent;
 class USpineSkeletonDataAsset;
 class ATDBaseTower;
 class UTrackEntry;
+class UWidgetComponent;
 
 UENUM(BlueprintType)
 enum class EDamageType : uint8
@@ -54,6 +55,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USpineSkeletonAnimationComponent> SpineAnim;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UWidgetComponent> HealthBarComp;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Spine")
 	TObjectPtr<USpineSkeletonDataAsset> SkeletonDataAsset;

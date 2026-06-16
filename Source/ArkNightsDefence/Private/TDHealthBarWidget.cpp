@@ -1,30 +1,32 @@
 #include "TDHealthBarWidget.h"
-#include "Styling/CoreStyle.h"
-#include "Widgets/Layout/SBorder.h"
+#include "Styling/SlateBrush.h"
+
+UTDHealthBarWidget::UTDHealthBarWidget()
+{
+	BarStyle.BackgroundImage.TintColor = FLinearColor(0.05f, 0.05f, 0.05f, 0.7f);
+	BarStyle.BackgroundImage.DrawAs = ESlateBrushDrawType::Box;
+	BarStyle.FillImage.TintColor = FLinearColor::White;
+	BarStyle.FillImage.DrawAs = ESlateBrushDrawType::Box;
+}
 
 TSharedRef<SWidget> UTDHealthBarWidget::RebuildWidget()
 {
-	TSharedRef<SBorder> Background = SNew(SBorder)
-		.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
-		.BorderBackgroundColor(FLinearColor(0.05f, 0.05f, 0.05f, 0.7f))
-		.Padding(FMargin(1.0f));
-
 	MyProgressBar = SNew(SProgressBar)
-		.Percent(1.0f)
-		.FillColorAndOpacity(FLinearColor::Red)
-		.BackgroundImage(nullptr);
+		.Style(&BarStyle)
+		.Percent(this, &UTDHealthBarWidget::GetPercent)
+		.FillColorAndOpacity(FLinearColor::Red);
 
-	Background->SetContent(MyProgressBar.ToSharedRef());
+	return MyProgressBar.ToSharedRef();
+}
 
-	return Background;
+float UTDHealthBarWidget::GetPercent() const
+{
+	return CurrentPercent;
 }
 
 void UTDHealthBarWidget::SetHealthPercent(float Percent)
 {
-	if (MyProgressBar.IsValid())
-	{
-		MyProgressBar->SetPercent(FMath::Clamp(Percent, 0.0f, 1.0f));
-	}
+	CurrentPercent = FMath::Clamp(Percent, 0.0f, 1.0f);
 }
 
 void UTDHealthBarWidget::SetBarColor(const FLinearColor& Color)

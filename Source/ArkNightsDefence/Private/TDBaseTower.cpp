@@ -88,7 +88,7 @@ void ATDBaseTower::BeginPlay()
 	{
 		if (UTDHealthBarWidget* HBWidget = Cast<UTDHealthBarWidget>(HealthBarComp->GetWidget()))
 		{
-			HBWidget->SetBarColor(FLinearColor::Blue);
+			HBWidget->SetBarColor(FLinearColor(0.3f, 0.6f, 1.0f)); // 浅蓝色
 		}
 	}
 }

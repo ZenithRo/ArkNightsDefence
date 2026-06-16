@@ -2,7 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Components/ProgressBar.h"
+#include "Widgets/Notifications/SProgressBar.h"
+
 #include "TDHealthBarWidget.generated.h"
 
 UCLASS()
@@ -11,7 +12,7 @@ class ARKNIGHTSDEFENCE_API UTDHealthBarWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	virtual void NativeConstruct() override;
+	virtual TSharedRef<SWidget> RebuildWidget() override;
 
 	UFUNCTION(BlueprintCallable, Category = "HealthBar")
 	void SetHealthPercent(float Percent);
@@ -20,5 +21,5 @@ public:
 	void SetBarColor(const FLinearColor& Color);
 
 private:
-	TObjectPtr<UProgressBar> HealthBar;
+	TSharedPtr<SProgressBar> MyProgressBar;
 };

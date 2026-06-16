@@ -1,59 +1,36 @@
 #include "TDHealthBarWidget.h"
-#include "Blueprint/WidgetTree.h"
-#include "Components/CanvasPanel.h"
-#include "Components/CanvasPanelSlot.h"
-#include "Styling/SlateBrush.h"
-#include "Styling/SlateColor.h"
+#include "Styling/CoreStyle.h"
+#include "Widgets/Layout/SBorder.h"
 
-void UTDHealthBarWidget::NativeConstruct()
+TSharedRef<SWidget> UTDHealthBarWidget::RebuildWidget()
 {
-	Super::NativeConstruct();
+	TSharedRef<SBorder> Background = SNew(SBorder)
+		.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
+		.BorderBackgroundColor(FLinearColor(0.05f, 0.05f, 0.05f, 0.7f))
+		.Padding(FMargin(1.0f));
 
-	if (WidgetTree)
-	{
-		UCanvasPanel* RootPanel = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("Root"));
-		WidgetTree->RootWidget = RootPanel;
+	MyProgressBar = SNew(SProgressBar)
+		.Percent(1.0f)
+		.FillColorAndOpacity(FLinearColor::Green)
+		.BackgroundImage(nullptr);
 
-		HealthBar = WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), TEXT("HealthBar"));
-		UCanvasPanelSlot* BarSlot = RootPanel->AddChildToCanvas(HealthBar);
-		if (BarSlot)
-		{
-			BarSlot->SetAnchors(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
-			BarSlot->SetOffsets(FMargin(0.0f));
-			BarSlot->SetAlignment(FVector2D(0.0f, 0.0f));
-		}
+	Background->SetContent(MyProgressBar.ToSharedRef());
 
-		FProgressBarStyle Style;
-		FSlateBrush BackgroundBrush;
-		BackgroundBrush.TintColor = FSlateColor(FLinearColor(0.05f, 0.05f, 0.05f, 0.7f));
-		BackgroundBrush.DrawAs = ESlateBrushDrawType::Box;
-		Style.BackgroundImage = BackgroundBrush;
-
-		FSlateBrush FillBrush;
-		FillBrush.TintColor = FSlateColor(FLinearColor::Green);
-		FillBrush.DrawAs = ESlateBrushDrawType::Box;
-		Style.FillImage = FillBrush;
-
-		HealthBar->SetWidgetStyle(Style);
-		HealthBar->SetPercent(1.0f);
-		HealthBar->SetBarFillType(EProgressBarFillType::LeftToRight);
-	}
+	return Background;
 }
 
 void UTDHealthBarWidget::SetHealthPercent(float Percent)
 {
-	if (HealthBar)
+	if (MyProgressBar.IsValid())
 	{
-		HealthBar->SetPercent(FMath::Clamp(Percent, 0.0f, 1.0f));
+		MyProgressBar->SetPercent(FMath::Clamp(Percent, 0.0f, 1.0f));
 	}
 }
 
 void UTDHealthBarWidget::SetBarColor(const FLinearColor& Color)
 {
-	if (HealthBar)
+	if (MyProgressBar.IsValid())
 	{
-		FProgressBarStyle Style = HealthBar->GetWidgetStyle();
-		Style.FillImage.TintColor = FSlateColor(Color);
-		HealthBar->SetWidgetStyle(Style);
+		MyProgressBar->SetFillColorAndOpacity(Color);
 	}
 }

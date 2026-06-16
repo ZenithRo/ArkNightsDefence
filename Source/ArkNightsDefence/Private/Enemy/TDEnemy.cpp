@@ -11,7 +11,7 @@
 #include "SpineSkeletonDataAsset.h"
 #include "Engine/DamageEvents.h"
 #include "Components/WidgetComponent.h"
-#include "TDHealthBarWidget.h"
+#include "UI/TDHealthBarWidget.h"
 
 ATDEnemy::ATDEnemy()
 {

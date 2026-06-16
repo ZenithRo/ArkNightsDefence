@@ -1,7 +1,7 @@
 #include "TDBaseTower.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SphereComponent.h"
-#include "TDGameMode.h"
+#include "Core/TDGameMode.h"
 #include "TDEnemy.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
@@ -10,7 +10,7 @@
 #include "SpineSkeletonDataAsset.h"
 #include "Engine/DamageEvents.h"
 #include "Components/WidgetComponent.h"
-#include "TDHealthBarWidget.h"
+#include "UI/TDHealthBarWidget.h"
 
 ATDBaseTower::ATDBaseTower()
 {

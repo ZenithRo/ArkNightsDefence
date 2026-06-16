@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "TDGridManager.h"
+#include "Grid/TDGridManager.h"
 #include "TDGridDataActor.generated.h"
 
 UCLASS(Blueprintable)

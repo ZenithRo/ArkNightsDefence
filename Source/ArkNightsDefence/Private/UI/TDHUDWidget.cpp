@@ -1,6 +1,6 @@
 // UMG HUD Widget实现: 由GameMode数据变化时触发更新, 不依赖Tick轮询
-#include "TDHUDWidget.h"
-#include "TDGameMode.h"
+#include "UI/TDHUDWidget.h"
+#include "Core/TDGameMode.h"
 #include "Components/TextBlock.h"
 
 // 从GameMode读取最新数据并刷新所有TextBlock (被GameMode在数据变化时调用)

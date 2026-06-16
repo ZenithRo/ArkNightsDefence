@@ -1,8 +1,8 @@
 // GameMode实现: 生命系统, 费用自动恢复, 经验累积, 全局Debug日志
-#include "TDGameMode.h"
-#include "TDHUDWidget.h"
-#include "TDGridManager.h"
-#include "TDGridDataActor.h"
+#include "Core/TDGameMode.h"
+#include "UI/TDHUDWidget.h"
+#include "Grid/TDGridManager.h"
+#include "Grid/TDGridDataActor.h"
 #include "TimerManager.h"
 #include "EngineUtils.h"
 

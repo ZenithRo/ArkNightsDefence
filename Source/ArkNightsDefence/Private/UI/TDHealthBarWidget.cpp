@@ -1,4 +1,4 @@
-#include "TDHealthBarWidget.h"
+#include "UI/TDHealthBarWidget.h"
 #include "Styling/SlateBrush.h"
 
 static FProgressBarStyle CreateDefaultBarStyle()

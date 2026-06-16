@@ -1,11 +1,11 @@
-#include "TDPlayerController.h"
+#include "Core/TDPlayerController.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "InputActionValue.h"
-#include "TDGameMode.h"
-#include "TDBaseTower.h"
-#include "TDGridManager.h"
-#include "TDDeploymentPreviewActor.h"
+#include "Core/TDGameMode.h"
+#include "Tower/TDBaseTower.h"
+#include "Grid/TDGridManager.h"
+#include "Deployment/TDDeploymentPreviewActor.h"
 #include "Engine/World.h"
 
 void ATDPlayerController::BeginPlay()

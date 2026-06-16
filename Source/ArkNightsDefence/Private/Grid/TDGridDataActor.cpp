@@ -1,4 +1,5 @@
 #include "Grid/TDGridDataActor.h"
+#include "Grid/TDGridDataAsset.h"
 #include "Engine/World.h"
 #include "DrawDebugHelpers.h"
 
@@ -11,6 +12,12 @@ ATDGridDataActor::ATDGridDataActor()
 void ATDGridDataActor::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// 如果关联了DataAsset且Cells为空, 自动从DataAsset加载
+	if (GridDataAsset && Cells.Num() == 0)
+	{
+		ImportFromDataAsset(GridDataAsset);
+	}
 
 	SetActorTickEnabled(false);
 	SetActorHiddenInGame(true);
@@ -84,4 +91,24 @@ void ATDGridDataActor::ApplyToGridManager(UTDGridManager* Manager) const
 		Manager->Cells[i].bDeployable = Cells[i].bDeployable;
 		Manager->Cells[i].TileType = Cells[i].TileType;
 	}
+}
+
+void ATDGridDataActor::ImportFromDataAsset(const UTDGridDataAsset* Asset)
+{
+	if (!Asset) return;
+
+	NumCols = Asset->NumCols;
+	NumRows = Asset->NumRows;
+	CellSize = Asset->CellSize;
+	Cells = Asset->Cells;
+}
+
+void ATDGridDataActor::ExportToDataAsset(UTDGridDataAsset* Asset) const
+{
+	if (!Asset) return;
+
+	Asset->NumCols = NumCols;
+	Asset->NumRows = NumRows;
+	Asset->CellSize = CellSize;
+	Asset->Cells = Cells;
 }

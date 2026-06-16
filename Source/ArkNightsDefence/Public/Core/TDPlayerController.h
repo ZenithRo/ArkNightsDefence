@@ -31,6 +31,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Tower")
 	TSubclassOf<ATDBaseTower> TowerToDeploy;
 
+	// 手牌中的可用塔列表(可在蓝图编辑器中设置)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Tower")
+	TArray<TSubclassOf<ATDBaseTower>> HandCards;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Tower")
 	TSubclassOf<ATDDeploymentPreviewActor> PreviewActorClass;
 

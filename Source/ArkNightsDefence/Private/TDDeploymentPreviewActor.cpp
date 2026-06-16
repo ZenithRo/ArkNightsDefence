@@ -12,16 +12,11 @@ ATDDeploymentPreviewActor::ATDDeploymentPreviewActor()
 	RootComponent = PreviewMesh;
 	PreviewMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-	// 默认使用立方体, 可通过蓝图替换
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube"));
 	if (CubeMesh.Succeeded())
 	{
 		PreviewMesh->SetStaticMesh(CubeMesh.Object);
 	}
-
-	// 初始半透明颜色 (绿色)
-	PreviewMesh->SetScalarParameterValueOnMaterials(TEXT("Opacity"), 0.4f);
-	PreviewMesh->SetVectorParameterValueOnMaterials(TEXT("Color"), FLinearColor::Green);
 }
 
 void ATDDeploymentPreviewActor::SetWorldLocationAndGrid(FVector WorldLoc, int32 Col, int32 Row)
@@ -39,12 +34,20 @@ void ATDDeploymentPreviewActor::SetValid(bool bValid)
 
 void ATDDeploymentPreviewActor::UpdateColor()
 {
-	if (bIsValid)
+	FVector ColorVec = bIsValid ? FVector(0.0f, 1.0f, 0.0f) : FVector(1.0f, 0.0f, 0.0f);
+
+	TArray<UMaterialInterface*> Mats = PreviewMesh->GetMaterials();
+	for (int32 i = 0; i < Mats.Num(); i++)
 	{
-		PreviewMesh->SetVectorParameterValueOnMaterials(TEXT("Color"), FLinearColor::Green);
-	}
-	else
-	{
-		PreviewMesh->SetVectorParameterValueOnMaterials(TEXT("Color"), FLinearColor::Red);
+		UMaterialInstanceDynamic* MID = Cast<UMaterialInstanceDynamic>(Mats[i]);
+		if (!MID)
+		{
+			MID = PreviewMesh->CreateAndSetMaterialInstanceDynamic(i);
+		}
+		if (MID)
+		{
+			MID->SetVectorParameterValue(TEXT("Color"), ColorVec);
+			MID->SetScalarParameterValue(TEXT("Opacity"), 0.4f);
+		}
 	}
 }

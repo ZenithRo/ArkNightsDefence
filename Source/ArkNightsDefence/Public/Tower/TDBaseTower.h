@@ -113,6 +113,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Combat")
 	int32 MaxBlockCount = 1;
 
+	// 目标选择器(优先级策略)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Tower|Combat")
+	TObjectPtr<class UTDGTargetSelector> TargetSelector;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Tower")
 	TObjectPtr<ATDEnemy> CurrentTarget;
 

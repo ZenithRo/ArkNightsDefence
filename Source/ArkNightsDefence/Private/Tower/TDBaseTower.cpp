@@ -12,6 +12,7 @@
 #include "Engine/DamageEvents.h"
 #include "Components/WidgetComponent.h"
 #include "UI/TDHealthBarWidget.h"
+#include "Tower/TDTargetSelector.h"
 
 ATDBaseTower::ATDBaseTower()
 {
@@ -266,7 +267,8 @@ void ATDBaseTower::FindTarget()
 	UWorld* World = GetWorld();
 	if (!World || bIsDead) return;
 
-	float ClosestDist = AttackRange;
+	// 收集攻击范围内所有敌人
+	TArray<ATDEnemy*> Candidates;
 
 	for (TActorIterator<ATDEnemy> It(World); It; ++It)
 	{
@@ -275,11 +277,40 @@ void ATDBaseTower::FindTarget()
 		if (!IsEnemyInRangeCells(Enemy)) continue;
 
 		float Dist = FVector::Dist(GetActorLocation(), Enemy->GetActorLocation());
-		if (Dist <= ClosestDist)
+		if (Dist <= AttackRange)
 		{
-			ClosestDist = Dist;
-			CurrentTarget = Enemy;
+			Candidates.Add(Enemy);
 		}
+	}
+
+	if (Candidates.Num() == 0) return;
+
+	// 使用目标选择器排序
+	if (TargetSelector)
+	{
+		TArray<ATDEnemy*> Selected = TargetSelector->SelectTargets(Candidates, this);
+		if (Selected.Num() > 0)
+		{
+			CurrentTarget = Selected[0];
+		}
+	}
+	else
+	{
+		// 回退: 最近距离优先
+		ATDEnemy* ClosestEnemy = nullptr;
+		float MinDist = AttackRange;
+
+		for (ATDEnemy* Enemy : Candidates)
+		{
+			float Dist = FVector::Dist(GetActorLocation(), Enemy->GetActorLocation());
+			if (Dist <= MinDist)
+			{
+				MinDist = Dist;
+				ClosestEnemy = Enemy;
+			}
+		}
+
+		CurrentTarget = ClosestEnemy;
 	}
 }
 

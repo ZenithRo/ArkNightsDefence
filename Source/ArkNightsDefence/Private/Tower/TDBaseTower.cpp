@@ -38,7 +38,7 @@ ATDBaseTower::ATDBaseTower()
 	// 后背视角Spine组件(朝上时使用)
 	SpineAnimBack = CreateDefaultSubobject<USpineSkeletonAnimationComponent>(TEXT("SpineAnimBack"));
 	SpineAnimBack->SetupAttachment(RootComponent);
-	SpineAnimBack->SetHiddenInGame(true);
+	SpineAnimBack->bHiddenInGame = true;
 
 	HealthBarComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBarComp"));
 	HealthBarComp->SetupAttachment(RootComponent);
@@ -68,26 +68,26 @@ void ATDBaseTower::SetDeployDirection(EDeployDirection NewDir)
 	switch (NewDir)
 	{
 	case EDeployDirection::RIGHT:
-		SpineAnim->SetHiddenInGame(false);
-		SpineAnimBack->SetHiddenInGame(true);
+		SpineAnim->bHiddenInGame = false;
+		SpineAnimBack->bHiddenInGame = true;
 		SetActorScale3D(FVector(1.0f, 1.0f, 1.0f));
 		break;
 
 	case EDeployDirection::LEFT:
-		SpineAnim->SetHiddenInGame(false);
-		SpineAnimBack->SetHiddenInGame(true);
+		SpineAnim->bHiddenInGame = false;
+		SpineAnimBack->bHiddenInGame = true;
 		SetActorScale3D(FVector(1.0f, -1.0f, 1.0f));
 		break;
 
 	case EDeployDirection::UP:
-		SpineAnim->SetHiddenInGame(true);
-		SpineAnimBack->SetHiddenInGame(false);
+		SpineAnim->bHiddenInGame = true;
+		SpineAnimBack->bHiddenInGame = false;
 		SetActorScale3D(FVector(1.0f, 1.0f, 1.0f));
 		break;
 
 	case EDeployDirection::DOWN:
-		SpineAnim->SetHiddenInGame(false);
-		SpineAnimBack->SetHiddenInGame(true);
+		SpineAnim->bHiddenInGame = false;
+		SpineAnimBack->bHiddenInGame = true;
 		SetActorScale3D(FVector(1.0f, -1.0f, 1.0f));
 		break;
 	}

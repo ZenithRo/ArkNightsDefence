@@ -4,6 +4,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/SplineComponent.h"
 #include "Core/TDGameMode.h"
+#include "Grid/TDGridManager.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "TimerManager.h"
@@ -101,6 +102,26 @@ void ATDEnemy::Tick(float DeltaTime)
 		if (HBWidget && MaxHealth > 0.0f)
 		{
 			HBWidget->SetHealthPercent(CurrentHealth / MaxHealth);
+		}
+	}
+
+	// 地穴死亡格检测
+	ATDGameMode* GM = Cast<ATDGameMode>(GetWorld()->GetAuthGameMode());
+	if (GM && GM->GridManager)
+	{
+		int32 Col, Row;
+		if (GM->GridManager->WorldToGrid(GetActorLocation(), Col, Row))
+		{
+			if (GM->GridManager->IsHoleCell(Col, Row))
+			{
+				FBox2D DeathBox = GM->GridManager->GetHoleDeathBox(Col, Row);
+				FVector Loc = GetActorLocation();
+				if (DeathBox.IsInside(FVector2D(Loc.X, Loc.Y)))
+				{
+					Die();
+					return;
+				}
+			}
 		}
 	}
 

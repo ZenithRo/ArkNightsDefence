@@ -35,6 +35,11 @@ ATDBaseTower::ATDBaseTower()
 
 	SpineAnim = CreateDefaultSubobject<USpineSkeletonAnimationComponent>(TEXT("SpineAnim"));
 
+	// 后背视角Spine组件(朝上时使用)
+	SpineAnimBack = CreateDefaultSubobject<USpineSkeletonAnimationComponent>(TEXT("SpineAnimBack"));
+	SpineAnimBack->SetupAttachment(RootComponent);
+	SpineAnimBack->SetHiddenInGame(true);
+
 	HealthBarComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBarComp"));
 	HealthBarComp->SetupAttachment(RootComponent);
 	HealthBarComp->SetWidgetSpace(EWidgetSpace::Screen);
@@ -46,16 +51,54 @@ ATDBaseTower::ATDBaseTower()
 	// 默认攻击范围为近战1格(自身格子)
 	AttackRangeCells.Add(FAttackRangeCell{0, 0});
 
-	// 构造时设默认朝左, 避免被Blueprint Class Defaults覆盖
-	FVector Scale = GetActorScale3D();
-	Scale.Y = -FMath::Abs(Scale.Y);
-	SetActorScale3D(Scale);
+	// 默认朝右(Scale.Y为正)
+	SetActorScale3D(FVector(1.0f, 1.0f, 1.0f));
 }
 
 void ATDBaseTower::SetGridCoordinate(int32 Col, int32 Row)
 {
 	GridCol = Col;
 	GridRow = Row;
+}
+
+void ATDBaseTower::SetDeployDirection(EDirection NewDir)
+{
+	DeployDirection = NewDir;
+
+	switch (NewDir)
+	{
+	case EDirection::RIGHT:
+		SpineAnim->SetHiddenInGame(false);
+		SpineAnimBack->SetHiddenInGame(true);
+		SetActorScale3D(FVector(1.0f, 1.0f, 1.0f));
+		break;
+
+	case EDirection::LEFT:
+		SpineAnim->SetHiddenInGame(false);
+		SpineAnimBack->SetHiddenInGame(true);
+		SetActorScale3D(FVector(1.0f, -1.0f, 1.0f));
+		break;
+
+	case EDirection::UP:
+		SpineAnim->SetHiddenInGame(true);
+		SpineAnimBack->SetHiddenInGame(false);
+		SetActorScale3D(FVector(1.0f, 1.0f, 1.0f));
+		break;
+
+	case EDirection::DOWN:
+		SpineAnim->SetHiddenInGame(false);
+		SpineAnimBack->SetHiddenInGame(true);
+		SetActorScale3D(FVector(1.0f, -1.0f, 1.0f));
+		break;
+	}
+}
+
+void ATDBaseTower::PlayBackAnim(const FString& AnimName, bool Loop)
+{
+	if (SpineAnimBack && SpineAnimBack->HasAnimation(AnimName))
+	{
+		SpineAnimBack->SetAnimation(0, AnimName, Loop);
+	}
 }
 
 int32 ATDBaseTower::GetCurrentBlockCount() const
@@ -111,6 +154,19 @@ void ATDBaseTower::BeginPlay()
 		{
 			SpineAnim->GetAnimationState()->getData()->setDefaultMix(0.0f);
 		}
+
+		// 初始化后背Spine组件(使用相同骨骼数据)
+		if (SpineAnimBack)
+		{
+			SpineAnimBack->SkeletonData = SkeletonDataAsset;
+			SpineAnimBack->AnimationComplete.AddDynamic(this, &ATDBaseTower::OnAnimComplete);
+			SpineAnimBack->SetAnimation(0, TEXT("Start"), false);
+			if (SpineAnimBack->GetAnimationState())
+			{
+				SpineAnimBack->GetAnimationState()->getData()->setDefaultMix(0.0f);
+			}
+		}
+
 		// 状态机重置为Starting
 		AnimState = ETowerAnimState::Starting;
 	}
@@ -141,6 +197,10 @@ void ATDBaseTower::Destroyed()
 	{
 		SpineAnim->AnimationComplete.RemoveDynamic(this, &ATDBaseTower::OnAnimComplete);
 	}
+	if (SpineAnimBack)
+	{
+		SpineAnimBack->AnimationComplete.RemoveDynamic(this, &ATDBaseTower::OnAnimComplete);
+	}
 	Super::Destroyed();
 }
 
@@ -169,23 +229,6 @@ void ATDBaseTower::Tick(float DeltaTime)
 
 	if (CurrentTarget)
 	{
-		FVector Direction = CurrentTarget->GetActorLocation() - GetActorLocation();
-		Direction.Z = 0.0f;
-		if (!Direction.IsNearlyZero())
-		{
-			// 默认朝左(Scale.Y为负), 目标在右侧(Y>0)镜像朝右, 在左侧(Y<0)维持朝左
-			FVector Scale = GetActorScale3D();
-			if (Direction.Y > 0.0f)
-			{
-				Scale.Y = FMath::Abs(Scale.Y);
-			}
-			else if (Direction.Y < 0.0f)
-			{
-				Scale.Y = -FMath::Abs(Scale.Y);
-			}
-			SetActorScale3D(Scale);
-		}
-
 		if (AnimState == ETowerAnimState::Idle)
 		{
 			PlayAnim(TEXT("Attack_Start"), false);
@@ -199,18 +242,17 @@ void ATDBaseTower::Tick(float DeltaTime)
 			PlayAnim(TEXT("Attack_End"), false);
 			AnimState = ETowerAnimState::AttackEnding;
 		}
-
-		if (AnimState == ETowerAnimState::Idle)
-		{
-			FVector Scale = GetActorScale3D();
-			Scale.Y = -FMath::Abs(Scale.Y);
-			SetActorScale3D(Scale);
-		}
 	}
 }
 
 void ATDBaseTower::PlayAnim(const FString& AnimName, bool Loop)
 {
+	if (DeployDirection == EDirection::UP)
+	{
+		PlayBackAnim(AnimName, Loop);
+		return;
+	}
+
 	if (SpineAnim && SpineAnim->HasAnimation(AnimName))
 	{
 		SpineAnim->SetAnimation(0, AnimName, Loop);

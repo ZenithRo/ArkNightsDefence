@@ -4,6 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "Enemy/TDEnemy.h"
 #include "Tower/TDAttackRange.h"
+#include "Tower/TDDeployDirection.h"
 #include "TDBaseTower.generated.h"
 
 class UStaticMeshComponent;
@@ -54,6 +55,10 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USpineSkeletonAnimationComponent> SpineAnim;
+
+	// 后背视角Spine组件(朝上时使用)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USpineSkeletonAnimationComponent> SpineAnimBack;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UWidgetComponent> HealthBarComp;
@@ -117,6 +122,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Tower|Combat")
 	TObjectPtr<class UTDGTargetSelector> TargetSelector;
 
+	// 部署方向
+	UPROPERTY(BlueprintReadOnly, Category = "Tower")
+	EDirection DeployDirection = EDirection::RIGHT;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Tower")
 	TObjectPtr<ATDEnemy> CurrentTarget;
 
@@ -132,6 +141,8 @@ public:
 	void Die();
 
 	void SetGridCoordinate(int32 Col, int32 Row);
+
+	void SetDeployDirection(EDirection NewDir);
 
 	int32 GridCol = -1;
 	int32 GridRow = -1;
@@ -151,6 +162,8 @@ protected:
 	void OnAnimComplete(UTrackEntry* Entry);
 
 	void PlayAnim(const FString& AnimName, bool Loop);
+
+	void PlayBackAnim(const FString& AnimName, bool Loop);
 
 private:
 	FTimerHandle FireTimerHandle;

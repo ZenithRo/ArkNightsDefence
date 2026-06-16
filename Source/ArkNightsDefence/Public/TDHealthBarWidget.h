@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Widgets/Notifications/SProgressBar.h"
-#include "Styling/SlateTypes.h"
 
 #include "TDHealthBarWidget.generated.h"
 
@@ -13,8 +12,6 @@ class ARKNIGHTSDEFENCE_API UTDHealthBarWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	UTDHealthBarWidget();
-
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 
 	UFUNCTION(BlueprintCallable, Category = "HealthBar")
@@ -24,9 +21,8 @@ public:
 	void SetBarColor(const FLinearColor& Color);
 
 private:
-	float GetPercent() const;
+	TOptional<float> GetPercent() const;
 
 	TSharedPtr<SProgressBar> MyProgressBar;
-	FProgressBarStyle BarStyle;
 	float CurrentPercent = 1.0f;
 };

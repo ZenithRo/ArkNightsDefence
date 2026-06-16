@@ -1,16 +1,20 @@
 #include "TDHealthBarWidget.h"
 #include "Styling/SlateBrush.h"
 
-UTDHealthBarWidget::UTDHealthBarWidget()
+static FProgressBarStyle CreateDefaultBarStyle()
 {
-	BarStyle.BackgroundImage.TintColor = FLinearColor(0.05f, 0.05f, 0.05f, 0.7f);
-	BarStyle.BackgroundImage.DrawAs = ESlateBrushDrawType::Box;
-	BarStyle.FillImage.TintColor = FLinearColor::White;
-	BarStyle.FillImage.DrawAs = ESlateBrushDrawType::Box;
+	FProgressBarStyle Style;
+	Style.BackgroundImage.TintColor = FLinearColor(0.05f, 0.05f, 0.05f, 0.7f);
+	Style.BackgroundImage.DrawAs = ESlateBrushDrawType::Box;
+	Style.FillImage.TintColor = FLinearColor::White;
+	Style.FillImage.DrawAs = ESlateBrushDrawType::Box;
+	return Style;
 }
 
 TSharedRef<SWidget> UTDHealthBarWidget::RebuildWidget()
 {
+	static const FProgressBarStyle BarStyle = CreateDefaultBarStyle();
+
 	MyProgressBar = SNew(SProgressBar)
 		.Style(&BarStyle)
 		.Percent(this, &UTDHealthBarWidget::GetPercent)
@@ -19,7 +23,7 @@ TSharedRef<SWidget> UTDHealthBarWidget::RebuildWidget()
 	return MyProgressBar.ToSharedRef();
 }
 
-float UTDHealthBarWidget::GetPercent() const
+TOptional<float> UTDHealthBarWidget::GetPercent() const
 {
 	return CurrentPercent;
 }

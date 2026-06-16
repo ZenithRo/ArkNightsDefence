@@ -9,34 +9,34 @@ TArray<ATDEnemy*> UTDGTargetSelector::SelectTargets(const TArray<ATDEnemy*>& Can
 	switch (Priority)
 	{
 	case ETargetPriority::NEAREST:
-		SortedCandidates.Sort([Selector](const ATDEnemy* A, const ATDEnemy* B)
+		SortedCandidates.Sort([Selector](const ATDEnemy& A, const ATDEnemy& B)
 		{
-			float DistA = FVector::Dist(Selector->GetActorLocation(), A->GetActorLocation());
-			float DistB = FVector::Dist(Selector->GetActorLocation(), B->GetActorLocation());
+			float DistA = FVector::Dist(Selector->GetActorLocation(), A.GetActorLocation());
+			float DistB = FVector::Dist(Selector->GetActorLocation(), B.GetActorLocation());
 			return DistA < DistB;
 		});
 		break;
 
 	case ETargetPriority::FARTHEST:
-		SortedCandidates.Sort([Selector](const ATDEnemy* A, const ATDEnemy* B)
+		SortedCandidates.Sort([Selector](const ATDEnemy& A, const ATDEnemy& B)
 		{
-			float DistA = FVector::Dist(Selector->GetActorLocation(), A->GetActorLocation());
-			float DistB = FVector::Dist(Selector->GetActorLocation(), B->GetActorLocation());
+			float DistA = FVector::Dist(Selector->GetActorLocation(), A.GetActorLocation());
+			float DistB = FVector::Dist(Selector->GetActorLocation(), B.GetActorLocation());
 			return DistA > DistB;
 		});
 		break;
 
 	case ETargetPriority::LOWEST_HP:
-		SortedCandidates.Sort([](const ATDEnemy* A, const ATDEnemy* B)
+		SortedCandidates.Sort([](const ATDEnemy& A, const ATDEnemy& B)
 		{
-			return A->CurrentHealth < B->CurrentHealth;
+			return A.CurrentHealth < B.CurrentHealth;
 		});
 		break;
 
 	case ETargetPriority::HIGHEST_HP:
-		SortedCandidates.Sort([](const ATDEnemy* A, const ATDEnemy* B)
+		SortedCandidates.Sort([](const ATDEnemy& A, const ATDEnemy& B)
 		{
-			return A->CurrentHealth > B->CurrentHealth;
+			return A.CurrentHealth > B.CurrentHealth;
 		});
 		break;
 

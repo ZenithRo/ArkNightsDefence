@@ -113,6 +113,7 @@ void ATDPlayerController::OnClick(const FInputActionValue& Value)
 
 	if (Tower)
 	{
+		Tower->SetGridCoordinate(Col, Row);
 		FVector Origin, BoxExtent;
 		Tower->GetActorBounds(false, Origin, BoxExtent);
 		float HalfHeight = BoxExtent.Z > 1.0f ? BoxExtent.Z * 0.5f : 50.0f;

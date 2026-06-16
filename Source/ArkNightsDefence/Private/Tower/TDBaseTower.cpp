@@ -2,6 +2,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/SphereComponent.h"
 #include "Core/TDGameMode.h"
+#include "Grid/TDGridManager.h"
 #include "Enemy/TDEnemy.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
@@ -41,10 +42,19 @@ ATDBaseTower::ATDBaseTower()
 	HealthBarComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	HealthBarComp->SetWidgetClass(UTDHealthBarWidget::StaticClass());
 
+	// 默认攻击范围为近战1格(自身格子)
+	AttackRangeCells.Add(FAttackRangeCell{0, 0});
+
 	// 构造时设默认朝左, 避免被Blueprint Class Defaults覆盖
 	FVector Scale = GetActorScale3D();
 	Scale.Y = -FMath::Abs(Scale.Y);
 	SetActorScale3D(Scale);
+}
+
+void ATDBaseTower::SetGridCoordinate(int32 Col, int32 Row)
+{
+	GridCol = Col;
+	GridRow = Row;
 }
 
 void ATDBaseTower::BeginPlay()
@@ -120,6 +130,7 @@ void ATDBaseTower::Tick(float DeltaTime)
 	}
 
 	if (!CurrentTarget || CurrentTarget->CurrentHealth <= 0.0f ||
+		!IsEnemyInRangeCells(CurrentTarget) ||
 		FVector::Dist(GetActorLocation(), CurrentTarget->GetActorLocation()) > AttackRange)
 	{
 		FindTarget();
@@ -200,6 +211,36 @@ void ATDBaseTower::OnAnimComplete(UTrackEntry* Entry)
 	}
 }
 
+bool ATDBaseTower::IsEnemyInRangeCells(ATDEnemy* Enemy) const
+{
+	if (!Enemy || GridCol < 0 || GridRow < 0 || AttackRangeCells.Num() == 0)
+	{
+		return true;
+	}
+
+	ATDGameMode* GM = Cast<ATDGameMode>(GetWorld()->GetAuthGameMode());
+	if (!GM || !GM->GridManager) return true;
+
+	int32 EnemyCol, EnemyRow;
+	if (!GM->GridManager->WorldToGrid(Enemy->GetActorLocation(), EnemyCol, EnemyRow))
+	{
+		return true;
+	}
+
+	int32 RelCol = EnemyCol - GridCol;
+	int32 RelRow = EnemyRow - GridRow;
+
+	for (const FAttackRangeCell& Cell : AttackRangeCells)
+	{
+		if (Cell.DeltaX == RelCol && Cell.DeltaY == RelRow)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void ATDBaseTower::FindTarget()
 {
 	CurrentTarget = nullptr;
@@ -213,6 +254,7 @@ void ATDBaseTower::FindTarget()
 	{
 		ATDEnemy* Enemy = *It;
 		if (!Enemy || Enemy->CurrentHealth <= 0.0f) continue;
+		if (!IsEnemyInRangeCells(Enemy)) continue;
 
 		float Dist = FVector::Dist(GetActorLocation(), Enemy->GetActorLocation());
 		if (Dist <= ClosestDist)

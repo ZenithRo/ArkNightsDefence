@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Enemy/TDEnemy.h"
+#include "Tower/TDAttackRange.h"
 #include "TDBaseTower.generated.h"
 
 class UStaticMeshComponent;
@@ -105,6 +106,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Upgrade")
 	float RangePerLevel = 50.0f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Tower|Attack")
+	TArray<FAttackRangeCell> AttackRangeCells;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Tower")
 	TObjectPtr<ATDEnemy> CurrentTarget;
 
@@ -119,6 +123,11 @@ public:
 
 	void Die();
 
+	void SetGridCoordinate(int32 Col, int32 Row);
+
+	int32 GridCol = -1;
+	int32 GridRow = -1;
+
 protected:
 	UFUNCTION()
 	void OnAnimComplete(UTrackEntry* Entry);
@@ -129,4 +138,6 @@ private:
 	FTimerHandle FireTimerHandle;
 	int32 GetUpgradeCost() const;
 	void ApplyLevelUpStats();
+
+	bool IsEnemyInRangeCells(ATDEnemy* Enemy) const;
 };

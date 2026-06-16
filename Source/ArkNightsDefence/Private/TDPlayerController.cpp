@@ -1,12 +1,12 @@
-// 玩家控制器实现: 鼠标显示, 输入映射注册, 点击部署塔
 #include "TDPlayerController.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "InputActionValue.h"
 #include "TDGameMode.h"
 #include "TDBaseTower.h"
+#include "TDGridManager.h"
+#include "TDDeploymentPreviewActor.h"
 #include "Engine/World.h"
-#include "DrawDebugHelpers.h"
 
 void ATDPlayerController::BeginPlay()
 {
@@ -40,38 +40,84 @@ void ATDPlayerController::SetupInputComponent()
 	}
 }
 
-// 鼠标点击: 射线检测水平地面 → SpendCost → SpawnActor生成塔
+void ATDPlayerController::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	UpdatePreview();
+}
+
+void ATDPlayerController::UpdatePreview()
+{
+	ATDGameMode* GM = Cast<ATDGameMode>(GetWorld()->GetAuthGameMode());
+	if (!GM || !GM->GridManager) return;
+
+	UTDGridManager* Grid = GM->GridManager;
+
+	FVector DeployLoc;
+	int32 Col, Row;
+	bool bHit = Grid->GetDeployLocation(this, DeployLoc, Col, Row);
+
+	if (!bHit)
+	{
+		if (PreviewActor) PreviewActor->SetActorHiddenInGame(true);
+		bHasValidHover = false;
+		return;
+	}
+
+	bool bCanDeploy = Grid->CanDeployAt(Col, Row) && TowerToDeploy && GM->Cost >= TowerToDeploy.GetDefaultObject()->CostToDeploy;
+
+	if (!PreviewActor && PreviewActorClass)
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		PreviewActor = GetWorld()->SpawnActor<ATDDeploymentPreviewActor>(PreviewActorClass, FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+	}
+
+	if (PreviewActor)
+	{
+		PreviewActor->SetActorHiddenInGame(false);
+		PreviewActor->SetWorldLocationAndGrid(DeployLoc, Col, Row);
+		PreviewActor->SetValid(bCanDeploy);
+	}
+
+	HoveredCol = Col;
+	HoveredRow = Row;
+	bHasValidHover = bHit;
+}
+
 void ATDPlayerController::OnClick(const FInputActionValue& Value)
 {
 	if (!TowerToDeploy) return;
 
-	FHitResult Hit;
-	GetHitResultUnderCursor(ECC_Visibility, false, Hit);
-
-	// 必须击中可视性碰撞, 且撞击面接近水平(法线朝上)
-	if (!Hit.bBlockingHit || Hit.ImpactNormal.Z < 0.5f) return;
-
-	// 尝试扣费
 	ATDGameMode* GM = Cast<ATDGameMode>(GetWorld()->GetAuthGameMode());
-	if (!GM) return;
+	if (!GM || !GM->GridManager) return;
+
+	UTDGridManager* Grid = GM->GridManager;
+
+	if (!bHasValidHover) return;
+	if (!Grid->CanDeployAt(HoveredCol, HoveredRow)) return;
 
 	if (!GM->SpendCost(TowerToDeploy.GetDefaultObject()->CostToDeploy)) return;
 
-	// 扣费成功, 先以Hit.Location生成塔, 再向下偏移使视觉中心落在点击位置
+	FVector DeployLoc;
+	int32 Col, Row;
+	if (!Grid->GetDeployLocation(this, DeployLoc, Col, Row)) return;
+	if (Col != HoveredCol || Row != HoveredRow) return;
+
+	Grid->TryOccupy(Col, Row);
+
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	ATDBaseTower* Tower = GetWorld()->SpawnActor<ATDBaseTower>(TowerToDeploy, Hit.Location, FRotator::ZeroRotator, SpawnParams);
+	ATDBaseTower* Tower = GetWorld()->SpawnActor<ATDBaseTower>(TowerToDeploy, DeployLoc, FRotator::ZeroRotator, SpawnParams);
 
 	if (Tower)
 	{
-		// 获取塔的包围盒, 偏移Z使包围盒中心对齐Hit.Location
 		FVector Origin, BoxExtent;
 		Tower->GetActorBounds(false, Origin, BoxExtent);
 		float HalfHeight = BoxExtent.Z > 1.0f ? BoxExtent.Z * 0.5f : 50.0f;
-		FVector CenterLoc = Hit.Location;
+		FVector CenterLoc = DeployLoc;
 		CenterLoc.Z -= HalfHeight;
 		Tower->SetActorLocation(CenterLoc);
-
-		DrawDebugSphere(GetWorld(), Hit.Location, 30.0f, 12, FColor::Green, false, 1.5f);
 	}
 }

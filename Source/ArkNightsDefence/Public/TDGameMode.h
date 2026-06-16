@@ -39,6 +39,10 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "Game|HUD")
 	TObjectPtr<class UTDHUDWidget> HUDWidget;
 
+	// 网格管理器
+	UPROPERTY(BlueprintReadOnly, Category = "Game|Grid")
+	TObjectPtr<class UTDGridManager> GridManager;
+
 	// 敌人到达终点: 扣生命, ≤0时GameOver
 	UFUNCTION(BlueprintCallable, Category = "Game")
 	void EnemyReachedEnd(int32 Damage);

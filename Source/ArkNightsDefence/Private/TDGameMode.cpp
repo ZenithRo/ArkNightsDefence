@@ -1,7 +1,10 @@
 // GameMode实现: 生命系统, 费用自动恢复, 经验累积, 全局Debug日志
 #include "TDGameMode.h"
 #include "TDHUDWidget.h"
+#include "TDGridManager.h"
+#include "TDGridDataActor.h"
 #include "TimerManager.h"
+#include "EngineUtils.h"
 
 ATDGameMode::ATDGameMode()
 {
@@ -14,6 +17,17 @@ ATDGameMode::ATDGameMode()
 void ATDGameMode::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// 创建网格管理器
+	GridManager = NewObject<UTDGridManager>(this);
+	GridManager->Initialize(10, 8, 200.0f, FVector::ZeroVector);
+
+	// 从关卡中查找TDGridDataActor, 应用其编辑数据
+	for (TActorIterator<ATDGridDataActor> It(GetWorld()); It; ++It)
+	{
+		(*It)->ApplyToGridManager(GridManager);
+		break;
+	}
 
 	// 启动费用恢复定时器: 每秒+1.0
 	GetWorldTimerManager().SetTimer(

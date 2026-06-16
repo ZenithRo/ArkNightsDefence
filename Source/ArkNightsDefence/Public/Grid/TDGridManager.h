@@ -10,6 +10,17 @@ namespace TDGridChannels
 	constexpr ECollisionChannel MapMesh = ECC_GameTraceChannel2;
 }
 
+UENUM(BlueprintType, meta=(Bitflags))
+enum class ETileType : uint8
+{
+	NONE     = 0,
+	GROUND   = 1 << 0,
+	HIGHLAND = 1 << 1,
+	BLOCKED  = 1 << 2,
+	START    = 1 << 3,
+	END      = 1 << 4
+};
+
 USTRUCT(BlueprintType)
 struct FGridCellData
 {
@@ -17,6 +28,9 @@ struct FGridCellData
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid")
 	bool bDeployable = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid")
+	ETileType TileType = ETileType::GROUND;
 
 	bool bOccupied = false;
 };

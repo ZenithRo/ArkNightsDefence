@@ -32,6 +32,18 @@ enum class EEnemyAnimState : uint8
 	Dying
 };
 
+USTRUCT(BlueprintType)
+struct FDamageInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float BaseDamage = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	class UTDBaseTower* SourceTower = nullptr;
+};
+
 UCLASS()
 class ARKNIGHTSDEFENCE_API ATDEnemy : public AActor
 {

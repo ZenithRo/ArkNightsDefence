@@ -35,11 +35,6 @@ ATDBaseTower::ATDBaseTower()
 
 	SpineAnim = CreateDefaultSubobject<USpineSkeletonAnimationComponent>(TEXT("SpineAnim"));
 
-	// 后背视角Spine组件(朝上时使用)
-	SpineAnimBack = CreateDefaultSubobject<USpineSkeletonAnimationComponent>(TEXT("SpineAnimBack"));
-	SpineAnimBack->SetupAttachment(RootComponent);
-	SpineAnimBack->bHiddenInGame = true;
-
 	HealthBarComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBarComp"));
 	HealthBarComp->SetupAttachment(RootComponent);
 	HealthBarComp->SetWidgetSpace(EWidgetSpace::Screen);
@@ -68,36 +63,20 @@ void ATDBaseTower::SetDeployDirection(EDeployDirection NewDir)
 	switch (NewDir)
 	{
 	case EDeployDirection::RIGHT:
-		SpineAnim->bHiddenInGame = false;
-		SpineAnimBack->bHiddenInGame = true;
 		SetActorScale3D(FVector(1.0f, 1.0f, 1.0f));
 		break;
 
 	case EDeployDirection::LEFT:
-		SpineAnim->bHiddenInGame = false;
-		SpineAnimBack->bHiddenInGame = true;
 		SetActorScale3D(FVector(1.0f, -1.0f, 1.0f));
 		break;
 
 	case EDeployDirection::UP:
-		SpineAnim->bHiddenInGame = true;
-		SpineAnimBack->bHiddenInGame = false;
 		SetActorScale3D(FVector(1.0f, 1.0f, 1.0f));
 		break;
 
 	case EDeployDirection::DOWN:
-		SpineAnim->bHiddenInGame = false;
-		SpineAnimBack->bHiddenInGame = true;
 		SetActorScale3D(FVector(1.0f, -1.0f, 1.0f));
 		break;
-	}
-}
-
-void ATDBaseTower::PlayBackAnim(const FString& AnimName, bool Loop)
-{
-	if (SpineAnimBack && SpineAnimBack->HasAnimation(AnimName))
-	{
-		SpineAnimBack->SetAnimation(0, AnimName, Loop);
 	}
 }
 
@@ -154,19 +133,6 @@ void ATDBaseTower::BeginPlay()
 		{
 			SpineAnim->GetAnimationState()->getData()->setDefaultMix(0.0f);
 		}
-
-		// 初始化后背Spine组件(使用相同骨骼数据)
-		if (SpineAnimBack)
-		{
-			SpineAnimBack->SkeletonData = SkeletonDataAsset;
-			SpineAnimBack->AnimationComplete.AddDynamic(this, &ATDBaseTower::OnAnimComplete);
-			SpineAnimBack->SetAnimation(0, TEXT("Start"), false);
-			if (SpineAnimBack->GetAnimationState())
-			{
-				SpineAnimBack->GetAnimationState()->getData()->setDefaultMix(0.0f);
-			}
-		}
-
 		// 状态机重置为Starting
 		AnimState = ETowerAnimState::Starting;
 	}
@@ -196,10 +162,6 @@ void ATDBaseTower::Destroyed()
 	if (SpineAnim)
 	{
 		SpineAnim->AnimationComplete.RemoveDynamic(this, &ATDBaseTower::OnAnimComplete);
-	}
-	if (SpineAnimBack)
-	{
-		SpineAnimBack->AnimationComplete.RemoveDynamic(this, &ATDBaseTower::OnAnimComplete);
 	}
 	Super::Destroyed();
 }
@@ -247,12 +209,6 @@ void ATDBaseTower::Tick(float DeltaTime)
 
 void ATDBaseTower::PlayAnim(const FString& AnimName, bool Loop)
 {
-	if (DeployDirection == EDeployDirection::UP)
-	{
-		PlayBackAnim(AnimName, Loop);
-		return;
-	}
-
 	if (SpineAnim && SpineAnim->HasAnimation(AnimName))
 	{
 		SpineAnim->SetAnimation(0, AnimName, Loop);
@@ -308,19 +264,15 @@ bool ATDBaseTower::IsEnemyInRangeCells(ATDEnemy* Enemy) const
 	switch (DeployDirection)
 	{
 	case EDeployDirection::RIGHT:
-		// (dx, dy) 不变
 		break;
 	case EDeployDirection::LEFT:
-		// (dx, -dy)
 		RotRow = -RelRow;
 		break;
 	case EDeployDirection::UP:
-		// (dy, dx) 交换
 		RotCol = RelRow;
 		RotRow = RelCol;
 		break;
 	case EDeployDirection::DOWN:
-		// (-dy, dx)
 		RotCol = -RelRow;
 		RotRow = RelCol;
 		break;

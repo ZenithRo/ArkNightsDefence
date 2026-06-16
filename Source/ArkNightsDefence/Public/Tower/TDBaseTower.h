@@ -56,9 +56,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USpineSkeletonAnimationComponent> SpineAnim;
 
-	// 后背视角Spine组件(朝上时使用)
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<USpineSkeletonAnimationComponent> SpineAnimBack;
+	// 后背视角Spine骨骼数据(朝上时使用, 由蓝图子类设置)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Spine")
+	TObjectPtr<USpineSkeletonDataAsset> SkeletonDataAssetBack;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UWidgetComponent> HealthBarComp;
@@ -162,8 +162,6 @@ protected:
 	void OnAnimComplete(UTrackEntry* Entry);
 
 	void PlayAnim(const FString& AnimName, bool Loop);
-
-	void PlayBackAnim(const FString& AnimName, bool Loop);
 
 private:
 	FTimerHandle FireTimerHandle;

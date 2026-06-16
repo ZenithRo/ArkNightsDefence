@@ -7,6 +7,7 @@
 #include "Grid/TDGridManager.h"
 #include "Deployment/TDDeploymentPreviewActor.h"
 #include "Engine/World.h"
+#include "CollisionQueryParams.h"
 
 void ATDPlayerController::BeginPlay()
 {
@@ -47,6 +48,21 @@ void ATDPlayerController::Tick(float DeltaTime)
 	UpdatePreview();
 }
 
+EDirection ATDPlayerController::GetDirectionFromMouse(FVector GridWorldCenter, FVector MouseWorldPos) const
+{
+	float dx = MouseWorldPos.X - GridWorldCenter.X;
+	float dy = MouseWorldPos.Y - GridWorldCenter.Y;
+
+	if (FMath::Abs(dx) > FMath::Abs(dy))
+	{
+		return dx > 0.0f ? EDirection::UP : EDirection::DOWN;
+	}
+	else
+	{
+		return dy > 0.0f ? EDirection::RIGHT : EDirection::LEFT;
+	}
+}
+
 void ATDPlayerController::UpdatePreview()
 {
 	ATDGameMode* GM = Cast<ATDGameMode>(GetWorld()->GetAuthGameMode());
@@ -66,6 +82,22 @@ void ATDPlayerController::UpdatePreview()
 	}
 
 	bool bCanDeploy = Grid->CanDeployAt(Col, Row) && TowerToDeploy && GM->Cost >= TowerToDeploy.GetDefaultObject()->CostToDeploy;
+
+	// 计算鼠标在格子上的方向
+	FVector CamLoc;
+	FRotator CamRot;
+	GetPlayerViewPoint(CamLoc, CamRot);
+
+	FHitResult PlaneHit;
+	FCollisionQueryParams QueryParams;
+	QueryParams.bTraceComplex = false;
+	FVector EndTrace = CamLoc + CamRot.Vector() * 50000.0f;
+
+	if (GetWorld()->LineTraceSingleByChannel(PlaneHit, CamLoc, EndTrace, TDGridChannels::DeploymentPlane, QueryParams))
+	{
+		FVector CellCenter = Grid->GridToWorld(Col, Row);
+		HoveredDirection = GetDirectionFromMouse(CellCenter, PlaneHit.Location);
+	}
 
 	if (!PreviewActor && PreviewActorClass)
 	{
@@ -114,6 +146,7 @@ void ATDPlayerController::OnClick(const FInputActionValue& Value)
 	if (Tower)
 	{
 		Tower->SetGridCoordinate(Col, Row);
+		Tower->SetDeployDirection(HoveredDirection);
 		FVector Origin, BoxExtent;
 		Tower->GetActorBounds(false, Origin, BoxExtent);
 		float HalfHeight = BoxExtent.Z > 1.0f ? BoxExtent.Z * 0.5f : 50.0f;

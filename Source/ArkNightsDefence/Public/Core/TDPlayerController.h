@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "Tower/TDDeployDirection.h"
 #include "TDPlayerController.generated.h"
 
 class UInputMappingContext;
@@ -38,9 +39,12 @@ protected:
 private:
 	void UpdatePreview();
 
+	EDirection GetDirectionFromMouse(FVector GridWorldCenter, FVector MouseWorldPos) const;
+
 	TObjectPtr<ATDDeploymentPreviewActor> PreviewActor;
 
 	int32 HoveredCol = -1;
 	int32 HoveredRow = -1;
+	EDirection HoveredDirection = EDirection::RIGHT;
 	bool bHasValidHover = false;
 };

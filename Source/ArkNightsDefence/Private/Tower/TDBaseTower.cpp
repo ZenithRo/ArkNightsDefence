@@ -76,6 +76,18 @@ void ATDBaseTower::RemoveBlockedEnemy(ATDEnemy* Enemy)
 	BlockedEnemies.Remove(Enemy);
 }
 
+void ATDBaseTower::FreeAllBlockedEnemies()
+{
+	for (TWeakObjectPtr<ATDEnemy>& EnemyPtr : BlockedEnemies)
+	{
+		if (EnemyPtr.IsValid())
+		{
+			EnemyPtr->OnUnblocked();
+		}
+	}
+	BlockedEnemies.Empty();
+}
+
 void ATDBaseTower::BeginPlay()
 {
 	Super::BeginPlay();
@@ -343,6 +355,9 @@ void ATDBaseTower::Die()
 {
 	if (bIsDead) return;
 	bIsDead = true;
+
+	// 释放所有被阻挡的敌人
+	FreeAllBlockedEnemies();
 
 	GetWorldTimerManager().ClearTimer(FireTimerHandle);
 

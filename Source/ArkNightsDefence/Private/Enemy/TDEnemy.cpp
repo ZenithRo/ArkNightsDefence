@@ -107,17 +107,46 @@ void ATDEnemy::Tick(float DeltaTime)
 	// 记录移动前的位置, 用于计算移动方向
 	FVector PreMoveLocation = GetActorLocation();
 
+	// 被阻挡时检查阻挡者是否还活着
+	if (bIsBlocked)
+	{
+		if (!BlockedByTower.IsValid() || BlockedByTower->bIsDead)
+		{
+			OnUnblocked();
+		}
+	}
+
 	// 查找最近的塔
 	FindNearestTower();
 
-	// 有目标塔且在近战范围内 → 停止移动, 攻击
+	// 有目标塔且在近战范围内
 	if (CurrentTargetTower && !CurrentTargetTower->bIsDead &&
 		FVector::Dist(GetActorLocation(), CurrentTargetTower->GetActorLocation()) <= MeleeRange)
 	{
-		if (AnimState == EEnemyAnimState::Moving || AnimState == EEnemyAnimState::MoveBeginning)
+		// 未被阻挡且塔有阻挡空位 → 触发阻挡
+		if (!bIsBlocked && CurrentTargetTower->GetCurrentBlockCount() < CurrentTargetTower->MaxBlockCount)
 		{
-			PlayAnim(TEXT("Move_End"), false);
-			AnimState = EEnemyAnimState::MoveEnding;
+			OnBlocked(CurrentTargetTower);
+		}
+
+		if (bIsBlocked)
+		{
+			// 被阻挡 → 停止移动, 攻击
+			if (AnimState == EEnemyAnimState::Moving || AnimState == EEnemyAnimState::MoveBeginning)
+			{
+				PlayAnim(TEXT("Move_End"), false);
+				AnimState = EEnemyAnimState::MoveEnding;
+			}
+		}
+		else
+		{
+			// 塔阻挡已满, 穿过
+			CurrentTargetTower = nullptr;
+			if (AnimState == EEnemyAnimState::Attacking || AnimState == EEnemyAnimState::MoveEnding)
+			{
+				PlayAnim(TEXT("Move_Begin"), false);
+				AnimState = EEnemyAnimState::MoveBeginning;
+			}
 		}
 	}
 	else if (CurrentTargetTower && !CurrentTargetTower->bIsDead)
@@ -128,6 +157,7 @@ void ATDEnemy::Tick(float DeltaTime)
 			AnimState = EEnemyAnimState::MoveBeginning;
 		}
 		CurrentTargetTower = nullptr;
+		if (bIsBlocked) OnUnblocked();
 	}
 	else
 	{
@@ -136,10 +166,11 @@ void ATDEnemy::Tick(float DeltaTime)
 			PlayAnim(TEXT("Move_Begin"), false);
 			AnimState = EEnemyAnimState::MoveBeginning;
 		}
+		if (bIsBlocked) OnUnblocked();
 	}
 
-	// 当处于移动相关状态时, 沿Spline前进 (只取位置, 不旋转Actor)
-	if (AnimState == EEnemyAnimState::Moving || AnimState == EEnemyAnimState::MoveBeginning)
+	// 当处于移动相关状态时且未被阻挡, 沿Spline前进 (只取位置, 不旋转Actor)
+	if ((AnimState == EEnemyAnimState::Moving || AnimState == EEnemyAnimState::MoveBeginning) && !bIsBlocked)
 	{
 		if (!CachedSpline) return;
 
@@ -236,6 +267,25 @@ void ATDEnemy::FindNearestTower()
 	}
 }
 
+void ATDEnemy::OnBlocked(ATDBaseTower* Blocker)
+{
+	if (bIsBlocked) return;
+	bIsBlocked = true;
+	BlockedByTower = Blocker;
+	Blocker->AddBlockedEnemy(this);
+}
+
+void ATDEnemy::OnUnblocked()
+{
+	if (!bIsBlocked) return;
+	bIsBlocked = false;
+	if (BlockedByTower.IsValid())
+	{
+		BlockedByTower->RemoveBlockedEnemy(this);
+	}
+	BlockedByTower = nullptr;
+}
+
 void ATDEnemy::ApplyDamage(float DamageAmount, EDamageType DamageType)
 {
 	if (bIsDead) return;
@@ -268,6 +318,14 @@ void ATDEnemy::Die()
 {
 	if (bIsDead) return;
 	bIsDead = true;
+
+	// 解除阻挡关系
+	if (bIsBlocked && BlockedByTower.IsValid())
+	{
+		BlockedByTower->RemoveBlockedEnemy(this);
+	}
+	bIsBlocked = false;
+	BlockedByTower = nullptr;
 
 	GetWorldTimerManager().ClearTimer(AttackTimerHandle);
 

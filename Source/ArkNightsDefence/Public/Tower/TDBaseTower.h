@@ -144,6 +144,8 @@ public:
 
 	void RemoveBlockedEnemy(ATDEnemy* Enemy);
 
+	void FreeAllBlockedEnemies();
+
 protected:
 	UFUNCTION()
 	void OnAnimComplete(UTrackEntry* Entry);

@@ -119,6 +119,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Enemy")
 	void ApplyDamage(float DamageAmount, EDamageType DamageType);
 
+	// 阻挡系统
+	bool bIsBlocked = false;
+	TWeakObjectPtr<ATDBaseTower> BlockedByTower;
+
+	void OnBlocked(ATDBaseTower* Blocker);
+	void OnUnblocked();
+
 private:
 	TObjectPtr<USplineComponent> CachedSpline;
 	FTimerHandle AttackTimerHandle;

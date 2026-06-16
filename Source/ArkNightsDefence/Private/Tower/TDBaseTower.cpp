@@ -2,7 +2,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/SphereComponent.h"
 #include "Core/TDGameMode.h"
-#include "TDEnemy.h"
+#include "Enemy/TDEnemy.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "TimerManager.h"

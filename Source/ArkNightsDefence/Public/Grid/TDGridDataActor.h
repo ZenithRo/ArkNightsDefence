@@ -24,9 +24,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	void ImportFromDataAsset(const UTDGridDataAsset* Asset);
 
-	// 导出到DataAsset
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	void ExportToDataAsset(UTDGridDataAsset* Asset) const;
+
+	// 通过行列坐标设置格子类型(编辑器工具用)
+	UFUNCTION(BlueprintCallable, Category = "Grid")
+	void SetCellType(int32 Col, int32 Row, ETileType NewType);
+
+	// 获取指定格子的类型
+	UFUNCTION(BlueprintCallable, Category = "Grid")
+	ETileType GetCellType(int32 Col, int32 Row) const;
+
+	// 调整网格大小并重置所有格子为默认
+	UFUNCTION(BlueprintCallable, Category = "Grid")
+	void SetGridSize(int32 NewCols, int32 NewRows);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid")
 	int32 NumCols = 10;
@@ -56,4 +67,7 @@ protected:
 	virtual bool ShouldTickIfViewportsOnly() const override { return true; }
 
 	void DrawEditorGrid();
+
+private:
+	bool IsValidCellCoords(int32 Col, int32 Row) const;
 };

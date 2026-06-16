@@ -112,3 +112,44 @@ void ATDGridDataActor::ExportToDataAsset(UTDGridDataAsset* Asset) const
 	Asset->CellSize = CellSize;
 	Asset->Cells = Cells;
 }
+
+void ATDGridDataActor::SetCellType(int32 Col, int32 Row, ETileType NewType)
+{
+	if (!IsValidCellCoords(Col, Row)) return;
+
+	int32 Idx = Row * NumCols + Col;
+	if (Cells.IsValidIndex(Idx))
+	{
+		Cells[Idx].TileType = NewType;
+		Cells[Idx].bDeployable = (NewType != ETileType::BLOCKED && NewType != ETileType::HOLE);
+	}
+}
+
+ETileType ATDGridDataActor::GetCellType(int32 Col, int32 Row) const
+{
+	if (!IsValidCellCoords(Col, Row)) return ETileType::GROUND;
+
+	int32 Idx = Row * NumCols + Col;
+	return Cells.IsValidIndex(Idx) ? Cells[Idx].TileType : ETileType::GROUND;
+}
+
+void ATDGridDataActor::SetGridSize(int32 NewCols, int32 NewRows)
+{
+	if (NewCols <= 0 || NewRows <= 0) return;
+
+	NumCols = NewCols;
+	NumRows = NewRows;
+
+	Cells.Empty();
+	Cells.SetNum(NumCols * NumRows);
+	for (int32 i = 0; i < Cells.Num(); i++)
+	{
+		Cells[i].TileType = ETileType::GROUND;
+		Cells[i].bDeployable = true;
+	}
+}
+
+bool ATDGridDataActor::IsValidCellCoords(int32 Col, int32 Row) const
+{
+	return Col >= 0 && Row >= 0 && Col < NumCols && Row < NumRows;
+}

@@ -41,7 +41,7 @@ struct FDamageInfo
 	float BaseDamage = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	class UTDBaseTower* SourceTower = nullptr;
+	ATDBaseTower* SourceTower = nullptr;
 };
 
 UCLASS()

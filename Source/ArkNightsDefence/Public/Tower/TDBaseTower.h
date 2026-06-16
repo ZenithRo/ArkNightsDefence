@@ -109,6 +109,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Tower|Attack")
 	TArray<FAttackRangeCell> AttackRangeCells;
 
+	// 最大阻挡数(敌人被该塔阻挡的数量上限)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Combat")
+	int32 MaxBlockCount = 1;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Tower")
 	TObjectPtr<ATDEnemy> CurrentTarget;
 
@@ -127,6 +131,14 @@ public:
 
 	int32 GridCol = -1;
 	int32 GridRow = -1;
+
+	int32 GetCurrentBlockCount() const;
+
+	TArray<TWeakObjectPtr<ATDEnemy>> BlockedEnemies;
+
+	void AddBlockedEnemy(ATDEnemy* Enemy);
+
+	void RemoveBlockedEnemy(ATDEnemy* Enemy);
 
 protected:
 	UFUNCTION()

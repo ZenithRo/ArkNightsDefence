@@ -57,6 +57,24 @@ void ATDBaseTower::SetGridCoordinate(int32 Col, int32 Row)
 	GridRow = Row;
 }
 
+int32 ATDBaseTower::GetCurrentBlockCount() const
+{
+	return BlockedEnemies.Num();
+}
+
+void ATDBaseTower::AddBlockedEnemy(ATDEnemy* Enemy)
+{
+	if (Enemy && !BlockedEnemies.Contains(Enemy))
+	{
+		BlockedEnemies.Add(Enemy);
+	}
+}
+
+void ATDBaseTower::RemoveBlockedEnemy(ATDEnemy* Enemy)
+{
+	BlockedEnemies.Remove(Enemy);
+}
+
 void ATDBaseTower::BeginPlay()
 {
 	Super::BeginPlay();

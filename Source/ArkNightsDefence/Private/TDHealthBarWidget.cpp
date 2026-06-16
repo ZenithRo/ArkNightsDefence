@@ -36,7 +36,7 @@ void UTDHealthBarWidget::NativeConstruct()
 
 		HealthBar->SetWidgetStyle(Style);
 		HealthBar->SetPercent(1.0f);
-		HealthBar->SetFillDirection(EProgressBarFillType::LeftToRight);
+		HealthBar->SetBarFillType(EProgressBarFillType::LeftToRight);
 	}
 }
 

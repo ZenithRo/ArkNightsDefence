@@ -33,6 +33,7 @@ ATDEnemy::ATDEnemy()
 	HealthBarComp->SetDrawSize(FVector2D(80.0f, 8.0f));
 	HealthBarComp->SetRelativeLocation(FVector(0.0f, 0.0f, 70.0f));
 	HealthBarComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	HealthBarComp->SetWidgetClass(UTDHealthBarWidget::StaticClass());
 
 	// 构造时设默认朝左, 避免被Blueprint Class Defaults覆盖
 	FVector Scale = GetActorScale3D();
@@ -70,11 +71,9 @@ void ATDEnemy::BeginPlay()
 	// 初始化血条(红色)
 	if (HealthBarComp)
 	{
-		UTDHealthBarWidget* HBWidget = CreateWidget<UTDHealthBarWidget>(GetWorld(), UTDHealthBarWidget::StaticClass());
-		if (HBWidget)
+		if (UTDHealthBarWidget* HBWidget = Cast<UTDHealthBarWidget>(HealthBarComp->GetWidget()))
 		{
 			HBWidget->SetBarColor(FLinearColor::Red);
-			HealthBarComp->SetWidget(HBWidget);
 		}
 	}
 }

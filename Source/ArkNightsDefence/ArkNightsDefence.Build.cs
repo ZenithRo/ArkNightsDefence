@@ -22,7 +22,7 @@ public class ArkNightsDefence : ModuleRules
         });
 
         // 私有依赖模块
-        PrivateDependencyModuleNames.AddRange(new string[] { });
+        PrivateDependencyModuleNames.AddRange(new string[] { "SlateCore" });
 
         // Uncomment if you are using Slate UI
         // PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

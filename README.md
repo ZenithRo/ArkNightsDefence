@@ -1,8 +1,6 @@
-# ArkNightsDefence--一个仿ArkNights的塔防小游戏--基于UE5的C++大作业项目
+# ArkNightsDefence -- 仿Arknights的塔防小游戏 (UE5 C++)
 
 ### 5/26 项目立项
-
-### 第1周 (5/27-5/29) 基础框架搭建
 
 #### C++ 类
 
@@ -33,7 +31,7 @@
 | 文件 | 说明 |
 |------|------|
 | `Config/DefaultInput.ini` | EnhancedInput系统配置 |
-| `.gitignore` | 忽略.vs, Binaries, Intermediate, DerivedDataCache, Saved, UpgradeLog.htm, week1_progress.txt, week2_progress.txt |
+| `.gitignore` | 忽略.vs, Binaries, Intermediate, DerivedDataCache, Saved, UpgradeLog.htm |
 
 #### 功能验证
 
@@ -45,7 +43,7 @@
 
 ---
 
-### 第2周 (5/31-6/2) 敌人系统 + Spline路径 + GameMode + UMG HUD
+### 5/31 敌人系统 + Spline路径 + GameMode + UMG HUD
 
 #### C++ 类
 
@@ -79,15 +77,6 @@
 | 费用 (Cost) | 部署防御塔 | 初始0，每秒自动+1.0，上限99 |
 | 作战记录 (Experience/EXP) | 升级防御塔(3档) | 击杀敌人掉落 |
 
-#### 关键改动记录
-
-| 日期 | 改动 |
-|------|------|
-| 6/1 | Zoom平滑插值：FInterpTo + ZoomStep步进钳制 |
-| 6/1 | 伤害系统重做：EDamageType枚举，PhysicalArmor(物防) + MagicResistance(法抗%)，ApplyDamage() |
-| 6/1 | HUD事件驱动：移除NativeTick，改为GameMode数据变化时调用UpdateDisplay() |
-| 6/2 | Cost初始=0，MaxCost=99，恢复速率1.0/秒 |
-
 #### 功能验证
 
 - ✅ Spline路径绘制（Alt+拖拽控制点增删节点）
@@ -99,13 +88,10 @@
 - ✅ Cost初始0，每秒+1.0，上限99 (Timer驱动)
 - ✅ Zoom平滑过渡（FInterpTo + 步进钳制）
 - ✅ HUD事件驱动刷新（数据变化才更新UI，不Tick轮询）
-- ✅ 全局Debug日志（EnemyLeaked/EXP+/GAME OVER/Cost变化）
-- ✅ Source全部C++文件中文注释 (覆盖率>20%)
-- ✅ 所有已提交保存
 
 ---
 
-### 第3周 (6/2-) 防御塔系统
+### 6/2 防御塔系统
 
 #### C++ 类
 
@@ -115,14 +101,6 @@
 | `Source/ArkNightsDefence/Private/TDBaseTower.cpp` | Tick搜索+旋转朝向目标，SetTimer定时Fire→ApplyDamage，LevelUp消耗经验+更新攻击/间隔/范围+重启Timer |
 | `Source/ArkNightsDefence/Public/TDGameMode.h` | 新增 SpendExperience(int32) 消耗经验接口 |
 | `Source/ArkNightsDefence/Private/TDGameMode.cpp` | SpendExperience: 经验≥Amount则减经验+刷新HUD，否则打印红色提示 |
-
-#### 蓝图资产
-
-| 蓝图 | 类型 | 说明 |
-|------|------|------|
-| (待创建) `BP_Guard` | 蓝图类（父类TDBaseTower） | 近卫塔：单体物理高伤 |
-| (待创建) `BP_Sniper` | 蓝图类（父类TDBaseTower） | 狙击塔：远程快速攻击 |
-| (待创建) `BP_Caster` | 蓝图类（父类TDBaseTower） | 术士塔：范围法术AOE |
 
 #### TDBaseTower 基础属性 (ClassDefaults)
 
@@ -150,3 +128,16 @@
 - ⬜ 部署系统 (点击地面 → SpendCost → SpawnActor)
 - ⬜ 弹丸系统 (TDProjectile)
 - ⬜ 波次系统 (TDWaveManager)
+
+---
+
+### 6/16 重构：模块化拆分
+
+| 日期 | 改动 |
+|------|------|
+| 6/16 | 项目拆分为Core/Grid/Enemy/Tower/Deployment/UI/Ability 7个模块，GridManager+TowerTargetSelector+TowerAnimState+AttackRange独立文件 |
+| 6/16 | 波次系统 (TDWaveManager + TDWaveSpline) |
+| 6/26 | Spine动画集成 (SpinePlugin) |
+| 6/27 | 部署方向系统 (EDeployDirection + SetDeployDirection + 攻击范围方向旋转) |
+| 6/27 | 手牌系统 (HandCards 数组) |
+| 7/9 | 格子分类系统 (ETileType扩展HOLE + ETowerPlacement + CanDeployAtWithPlacement + GridDataAsset + 编辑器画笔工具) |

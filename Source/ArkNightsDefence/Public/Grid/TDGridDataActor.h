@@ -81,6 +81,8 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	virtual void PostInitProperties() override;
+
 	virtual bool ShouldTickIfViewportsOnly() const override { return true; }
 
 	void DrawEditorGrid();

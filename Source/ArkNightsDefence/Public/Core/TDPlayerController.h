@@ -35,6 +35,30 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Tower")
 	TArray<TSubclassOf<ATDBaseTower>> HandCards;
 
+	// 当前选中的手牌索引, -1表示未选中
+	UPROPERTY(BlueprintReadOnly, Category = "Tower")
+	int32 SelectedHandCardIndex = -1;
+
+	// 选择手牌中的一张塔(自动取消上一个选中, 置空TowerToDeploy)
+	UFUNCTION(BlueprintCallable, Category = "Tower")
+	void SelectHandCard(int32 Index);
+
+	// 取消选中
+	UFUNCTION(BlueprintCallable, Category = "Tower")
+	void DeselectHandCard();
+
+	// 获取手牌数量
+	UFUNCTION(BlueprintCallable, Category = "Tower")
+	int32 GetHandCardCount() const { return HandCards.Num(); }
+
+	// 获取指定手牌的塔类
+	UFUNCTION(BlueprintCallable, Category = "Tower")
+	TSubclassOf<ATDBaseTower> GetHandCardClass(int32 Index) const;
+
+	// 获取指定手牌的部署费用
+	UFUNCTION(BlueprintCallable, Category = "Tower")
+	float GetHandCardCost(int32 Index) const;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Tower")
 	TSubclassOf<ATDDeploymentPreviewActor> PreviewActorClass;
 

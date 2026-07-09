@@ -160,3 +160,28 @@ void ATDPlayerController::OnClick(const FInputActionValue& Value)
 		Tower->SetActorLocation(CenterLoc);
 	}
 }
+
+void ATDPlayerController::SelectHandCard(int32 Index)
+{
+	if (!HandCards.IsValidIndex(Index)) return;
+
+	TowerToDeploy = HandCards[Index];
+	SelectedHandCardIndex = Index;
+}
+
+void ATDPlayerController::DeselectHandCard()
+{
+	TowerToDeploy = nullptr;
+	SelectedHandCardIndex = -1;
+}
+
+TSubclassOf<ATDBaseTower> ATDPlayerController::GetHandCardClass(int32 Index) const
+{
+	return HandCards.IsValidIndex(Index) ? HandCards[Index] : nullptr;
+}
+
+float ATDPlayerController::GetHandCardCost(int32 Index) const
+{
+	if (!HandCards.IsValidIndex(Index) || !HandCards[Index]) return 0.0f;
+	return HandCards[Index].GetDefaultObject()->CostToDeploy;
+}

@@ -39,6 +39,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	void SetGridSize(int32 NewCols, int32 NewRows);
 
+	// 世界坐标→格子坐标(编辑器工具用)
+	UFUNCTION(BlueprintCallable, Category = "Grid")
+	bool WorldToGrid(FVector WorldPos, int32& OutCol, int32& OutRow) const;
+
+	// 格子坐标→世界中心坐标
+	UFUNCTION(BlueprintCallable, Category = "Grid")
+	FVector GridToWorld(int32 Col, int32 Row) const;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid")
 	int32 NumCols = 10;
 

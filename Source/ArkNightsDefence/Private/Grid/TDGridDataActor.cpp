@@ -153,3 +153,29 @@ bool ATDGridDataActor::IsValidCellCoords(int32 Col, int32 Row) const
 {
 	return Col >= 0 && Row >= 0 && Col < NumCols && Row < NumRows;
 }
+
+bool ATDGridDataActor::WorldToGrid(FVector WorldPos, int32& OutCol, int32& OutRow) const
+{
+	if (CellSize <= 0.0f) return false;
+
+	// GridOrigin是中心坐标，转成左上角
+	FVector Corner = GridOrigin - FVector(NumCols * CellSize * 0.5f, NumRows * CellSize * 0.5f, 0.0f);
+
+	float RelX = WorldPos.X - Corner.X;
+	float RelY = WorldPos.Y - Corner.Y;
+
+	OutCol = FMath::FloorToInt(RelX / CellSize);
+	OutRow = FMath::FloorToInt(RelY / CellSize);
+
+	return IsValidCellCoords(OutCol, OutRow);
+}
+
+FVector ATDGridDataActor::GridToWorld(int32 Col, int32 Row) const
+{
+	// GridOrigin是中心坐标，转成左上角再算中心
+	FVector Corner = GridOrigin - FVector(NumCols * CellSize * 0.5f, NumRows * CellSize * 0.5f, 0.0f);
+
+	float CenterX = Corner.X + (Col + 0.5f) * CellSize;
+	float CenterY = Corner.Y + (Row + 0.5f) * CellSize;
+	return FVector(CenterX, CenterY, GridOrigin.Z);
+}

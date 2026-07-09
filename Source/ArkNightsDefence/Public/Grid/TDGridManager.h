@@ -20,7 +20,7 @@ enum class ETileType : uint8
 	BLOCKED  = 1 << 2,
 	START    = 1 << 3,
 	END      = 1 << 4,
-	HOLE     = 1 << 5	UMETA(DisplayName = "地穴死亡格")
+	HOLE     = 1 << 5
 };
 
 USTRUCT(BlueprintType)

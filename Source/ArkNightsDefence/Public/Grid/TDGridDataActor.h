@@ -69,6 +69,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid")
 	TObjectPtr<UTDGridDataAsset> GridDataAsset;
 
+	// ——— 编辑器工具控制 ———
+	// 启用/禁用编辑器画笔工具
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid|EditorTool")
+	bool bEditorToolEnabled = false;
+
+	// 当前笔刷类型
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid|EditorTool")
+	ETileType EditorBrushType = ETileType::GROUND;
+
 protected:
 	virtual void BeginPlay() override;
 

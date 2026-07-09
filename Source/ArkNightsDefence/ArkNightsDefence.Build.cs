@@ -24,6 +24,12 @@ public class ArkNightsDefence : ModuleRules
         // 私有依赖模块 (Slate/SlateCore用于纯C++ Widget)
         PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 
+        // 编辑器专用依赖
+        if (Target.Type == TargetType.Editor)
+        {
+            PrivateDependencyModuleNames.Add("UnrealEd");
+        }
+
         // Uncomment if you are using Slate UI
         // PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 

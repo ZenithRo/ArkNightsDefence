@@ -3,6 +3,16 @@
 #include "Engine/World.h"
 #include "DrawDebugHelpers.h"
 
+// 仅在编辑器构建中使用GEditor相关API
+#if WITH_EDITOR
+#include "EditorViewportClient.h"
+#include "UnrealEdGlobals.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Engine/Engine.h"
+#endif
+
+DEFINE_LOG_CATEGORY_STATIC(LogGridEditor, Log, All);
+
 ATDGridDataActor::ATDGridDataActor()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -13,7 +23,6 @@ void ATDGridDataActor::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// 如果关联了DataAsset且Cells为空, 自动从DataAsset加载
 	if (GridDataAsset && Cells.Num() == 0)
 	{
 		ImportFromDataAsset(GridDataAsset);
@@ -28,154 +37,48 @@ void ATDGridDataActor::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	DrawEditorGrid();
-}
 
-static FColor GetTileColor(ETileType TileType)
-{
-	switch (TileType)
+#if WITH_EDITOR
+	if (bEditorToolEnabled && GEditor)
 	{
-	case ETileType::GROUND:		return FColor(0, 180, 0);	// 浅绿
-	case ETileType::HIGHLAND:	return FColor(0, 60, 180);	// 深蓝
-	case ETileType::BLOCKED:	return FColor(120, 120, 120);// 灰
-	case ETileType::HOLE:		return FColor(180, 0, 0);	// 深红
-	default:					return FColor(80, 80, 80);
-	}
-}
+		FViewport* ActiveViewport = GEditor->GetActiveViewport();
+		if (!ActiveViewport) return;
 
-void ATDGridDataActor::DrawEditorGrid()
-{
-	if (NumCols <= 0 || NumRows <= 0 || CellSize <= 0.0f) return;
+		FEditorViewportClient* ViewportClient = (FEditorViewportClient*)ActiveViewport->GetClient();
+		if (!ViewportClient) return;
 
-	UWorld* World = GetWorld();
-	if (!World) return;
+		FIntPoint MousePos;
+		ActiveViewport->GetMousePos(MousePos);
 
-	// 将网格中心转为左上角坐标
-	FVector Corner = GridOrigin - FVector(NumCols * CellSize * 0.5f, NumRows * CellSize * 0.5f, 0.0f);
+		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
+			ActiveViewport, ViewportClient->GetScene(), ViewportClient->EngineShowFlags));
+		FSceneView* View = ViewportClient->CalcSceneView(&ViewFamily);
 
-	for (int32 Row = 0; Row < NumRows; Row++)
-	{
-		for (int32 Col = 0; Col < NumCols; Col++)
+		if (View)
 		{
-			int32 Idx = Row * NumCols + Col;
-			ETileType TileType = Cells.IsValidIndex(Idx) ? Cells[Idx].TileType : ETileType::GROUND;
-			FColor Color = GetTileColor(TileType);
+			FVector Origin, Direction;
+			View->DeprojectFVector2D(FVector2D(MousePos.X, MousePos.Y), Origin, Direction);
 
-			float CenterX = Corner.X + (Col + 0.5f) * CellSize;
-			float CenterY = Corner.Y + (Row + 0.5f) * CellSize;
-			FVector Center(CenterX, CenterY, DrawHeight);
-			FVector Extent(CellSize * 0.45f, CellSize * 0.45f, 10.0f);
-
-			DrawDebugBox(World, Center, Extent, Color, false, -1.0f, 0, 2.0f);
-
-			// 地穴格额外绘制90%死亡判定矩形线框
-			if (TileType == ETileType::HOLE)
+			if (FMath::Abs(Direction.Z) > 1e-6f)
 			{
-				float DeathHalfSize = CellSize * 0.9f * 0.5f;
-				FVector DeathExtent(DeathHalfSize, DeathHalfSize, 10.0f);
-				DrawDebugBox(World, Center, DeathExtent, FColor(255, 100, 0), false, -1.0f, 0, 4.0f);
+				float t = -Origin.Z / Direction.Z;
+				FVector HitLocation = Origin + Direction * t;
+
+				int32 Col, Row;
+				if (WorldToGrid(HitLocation, Col, Row))
+				{
+					if (ActiveViewport->KeyState(EKeys::LeftMouseButton))
+					{
+						SetCellType(Col, Row, EditorBrushType);
+						if (!IsRunningGame())
+						{
+							Modify();
+							PostEditChange();
+						}
+					}
+				}
 			}
 		}
 	}
-}
-
-void ATDGridDataActor::ApplyToGridManager(UTDGridManager* Manager) const
-{
-	if (!Manager) return;
-
-	// 将网格中心转为左上角坐标传给GridManager
-	FVector Corner = GridOrigin - FVector(NumCols * CellSize * 0.5f, NumRows * CellSize * 0.5f, 0.0f);
-	Manager->Initialize(NumCols, NumRows, CellSize, Corner);
-
-	for (int32 i = 0; i < Cells.Num() && i < Manager->Cells.Num(); i++)
-	{
-		Manager->Cells[i].bDeployable = Cells[i].bDeployable;
-		Manager->Cells[i].TileType = Cells[i].TileType;
-	}
-}
-
-void ATDGridDataActor::ImportFromDataAsset(const UTDGridDataAsset* Asset)
-{
-	if (!Asset) return;
-
-	NumCols = Asset->NumCols;
-	NumRows = Asset->NumRows;
-	CellSize = Asset->CellSize;
-	Cells = Asset->Cells;
-}
-
-void ATDGridDataActor::ExportToDataAsset(UTDGridDataAsset* Asset) const
-{
-	if (!Asset) return;
-
-	Asset->NumCols = NumCols;
-	Asset->NumRows = NumRows;
-	Asset->CellSize = CellSize;
-	Asset->Cells = Cells;
-}
-
-void ATDGridDataActor::SetCellType(int32 Col, int32 Row, ETileType NewType)
-{
-	if (!IsValidCellCoords(Col, Row)) return;
-
-	int32 Idx = Row * NumCols + Col;
-	if (Cells.IsValidIndex(Idx))
-	{
-		Cells[Idx].TileType = NewType;
-		Cells[Idx].bDeployable = (NewType != ETileType::BLOCKED && NewType != ETileType::HOLE);
-	}
-}
-
-ETileType ATDGridDataActor::GetCellType(int32 Col, int32 Row) const
-{
-	if (!IsValidCellCoords(Col, Row)) return ETileType::GROUND;
-
-	int32 Idx = Row * NumCols + Col;
-	return Cells.IsValidIndex(Idx) ? Cells[Idx].TileType : ETileType::GROUND;
-}
-
-void ATDGridDataActor::SetGridSize(int32 NewCols, int32 NewRows)
-{
-	if (NewCols <= 0 || NewRows <= 0) return;
-
-	NumCols = NewCols;
-	NumRows = NewRows;
-
-	Cells.Empty();
-	Cells.SetNum(NumCols * NumRows);
-	for (int32 i = 0; i < Cells.Num(); i++)
-	{
-		Cells[i].TileType = ETileType::GROUND;
-		Cells[i].bDeployable = true;
-	}
-}
-
-bool ATDGridDataActor::IsValidCellCoords(int32 Col, int32 Row) const
-{
-	return Col >= 0 && Row >= 0 && Col < NumCols && Row < NumRows;
-}
-
-bool ATDGridDataActor::WorldToGrid(FVector WorldPos, int32& OutCol, int32& OutRow) const
-{
-	if (CellSize <= 0.0f) return false;
-
-	// GridOrigin是中心坐标，转成左上角
-	FVector Corner = GridOrigin - FVector(NumCols * CellSize * 0.5f, NumRows * CellSize * 0.5f, 0.0f);
-
-	float RelX = WorldPos.X - Corner.X;
-	float RelY = WorldPos.Y - Corner.Y;
-
-	OutCol = FMath::FloorToInt(RelX / CellSize);
-	OutRow = FMath::FloorToInt(RelY / CellSize);
-
-	return IsValidCellCoords(OutCol, OutRow);
-}
-
-FVector ATDGridDataActor::GridToWorld(int32 Col, int32 Row) const
-{
-	// GridOrigin是中心坐标，转成左上角再算中心
-	FVector Corner = GridOrigin - FVector(NumCols * CellSize * 0.5f, NumRows * CellSize * 0.5f, 0.0f);
-
-	float CenterX = Corner.X + (Col + 0.5f) * CellSize;
-	float CenterY = Corner.Y + (Row + 0.5f) * CellSize;
-	return FVector(CenterX, CenterY, GridOrigin.Z);
+#endif
 }

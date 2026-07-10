@@ -1,6 +1,7 @@
 // GameMode实现: 生命系统, 费用自动恢复, 经验累积, 全局Debug日志
 #include "Core/TDGameMode.h"
 #include "UI/TDHUDWidget.h"
+#include "UI/TDHandPanel.h"
 #include "Grid/TDGridManager.h"
 #include "Grid/TDGridDataActor.h"
 #include "TimerManager.h"
@@ -37,6 +38,22 @@ void ATDGameMode::BeginPlay()
 		1.0f,
 		true
 	);
+
+	// 创建手牌面板
+	if (HandPanelClass && GetWorld())
+	{
+		HandPanel = CreateWidget<UTDHandPanel>(GetWorld(), HandPanelClass);
+		if (HandPanel)
+		{
+			HandPanel->AddToViewport();
+			if (GEngine)
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("HandPanel created and added to viewport"));
+		}
+	}
+	else if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("HandPanelClass not set in GameMode!"));
+	}
 
 	if (GEngine)
 	{

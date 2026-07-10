@@ -39,6 +39,7 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Tower")
 	int32 SelectedHandCardIndex = -1;
 
+public:
 	// 选择手牌中的一张塔(自动取消上一个选中, 置空TowerToDeploy)
 	UFUNCTION(BlueprintCallable, Category = "Tower")
 	void SelectHandCard(int32 Index);
@@ -59,6 +60,15 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Tower")
 	float GetHandCardCost(int32 Index) const;
 
+	// 按费用从低到高返回排序后的索引数组(用于手牌排列)
+	UFUNCTION(BlueprintCallable, Category = "Tower")
+	TArray<int32> GetSortedHandCardIndices() const;
+
+	// 按费用从高到低返回排序后的索引数组(右边→左边排列)
+	UFUNCTION(BlueprintCallable, Category = "Tower")
+	TArray<int32> GetDescendingSortedHandCardIndices() const;
+
+protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Tower")
 	TSubclassOf<ATDDeploymentPreviewActor> PreviewActorClass;
 

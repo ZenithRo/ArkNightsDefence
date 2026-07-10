@@ -185,3 +185,35 @@ float ATDPlayerController::GetHandCardCost(int32 Index) const
 	if (!HandCards.IsValidIndex(Index) || !HandCards[Index]) return 0.0f;
 	return HandCards[Index].GetDefaultObject()->CostToDeploy;
 }
+
+TArray<int32> ATDPlayerController::GetSortedHandCardIndices() const
+{
+	TArray<int32> Result;
+	for (int32 i = 0; i < HandCards.Num(); i++)
+	{
+		if (HandCards[i])
+		{
+			Result.Add(i);
+		}
+	}
+	Result.Sort([this](int32 A, int32 B) {
+		return GetHandCardCost(A) < GetHandCardCost(B);
+	});
+	return Result;
+}
+
+TArray<int32> ATDPlayerController::GetDescendingSortedHandCardIndices() const
+{
+	TArray<int32> Result;
+	for (int32 i = 0; i < HandCards.Num(); i++)
+	{
+		if (HandCards[i])
+		{
+			Result.Add(i);
+		}
+	}
+	Result.Sort([this](int32 A, int32 B) {
+		return GetHandCardCost(A) > GetHandCardCost(B);
+	});
+	return Result;
+}

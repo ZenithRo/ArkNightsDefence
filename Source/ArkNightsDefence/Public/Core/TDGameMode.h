@@ -39,6 +39,13 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "Game|HUD")
 	TObjectPtr<class UTDHUDWidget> HUDWidget;
 
+	// 手牌面板
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Game|UI")
+	TSubclassOf<class UTDHandPanel> HandPanelClass;
+
+	UPROPERTY()
+	TObjectPtr<class UTDHandPanel> HandPanel;
+
 	// 网格管理器
 	UPROPERTY(BlueprintReadOnly, Category = "Game|Grid")
 	TObjectPtr<class UTDGridManager> GridManager;

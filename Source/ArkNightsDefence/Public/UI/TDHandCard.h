@@ -27,6 +27,12 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "HandCard")
 	TObjectPtr<UTexture2D> CardIcon;
 
+	UPROPERTY(BlueprintReadOnly, Category = "HandCard")
+	TObjectPtr<UTexture2D> CardAvatar;
+
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UImage> CardIconImage;
+
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	TObjectPtr<UImage> CardAvatarImage;
 };

@@ -77,6 +77,11 @@ void UTDHandPanel::NativeConstruct()
 				FString IconPath = FString::Printf(TEXT("/Game/Resource/ico/%s.%s"), *IconNameStr, *IconNameStr);
 				Card->CardIcon = Cast<UTexture2D>(FSoftObjectPath(IconPath).TryLoad());
 			}
+
+			FString ClassName = TowerSubclass->GetName();
+			ClassName.RemoveFromEnd(TEXT("_C"));
+			FString AvatarPath = FString::Printf(TEXT("/Game/Resource/Avatar/%s_avatar.%s_avatar"), *ClassName, *ClassName);
+			Card->CardAvatar = Cast<UTexture2D>(FSoftObjectPath(AvatarPath).TryLoad());
 		}
 
 		Card->Initialize();

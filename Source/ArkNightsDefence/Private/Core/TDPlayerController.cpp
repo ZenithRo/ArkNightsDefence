@@ -46,7 +46,158 @@ void ATDPlayerController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (bIsDragging)
+	{
+		if (!IsInputKeyDown(EKeys::LeftMouseButton))
+		{
+			if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("[Tick] mouse released during drag, calling DoDeploy..."));
+			bHasValidHover = false;
+			bIsDragging = false;
+
+			if (DoDeploy())
+			{
+				if (GEngine)
+					GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Green, TEXT("Deployed via drag"));
+			}
+			else
+			{
+				DeselectHandCard();
+				if (PreviewActor) PreviewActor->SetActorHiddenInGame(true);
+				if (GEngine)
+					GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Orange, TEXT("Placement cancelled"));
+			}
+			return;
+		}
+	}
+
 	UpdatePreview();
+}
+
+void ATDPlayerController::BeginPlacement(int32 Index)
+{
+	if (!HandCards.IsValidIndex(Index)) return;
+
+	TowerToDeploy = HandCards[Index];
+	SelectedHandCardIndex = Index;
+	bIsDragging = true;
+
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow,
+			FString::Printf(TEXT("Placement: dragging card #%d"), Index));
+	}
+}
+
+void ATDPlayerController::EndPlacement()
+{
+	if (!bIsDragging) return;
+	bHasValidHover = false;
+	bIsDragging = false;
+
+	if (DoDeploy())
+	{
+		if (GEngine)
+			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Green, TEXT("Deployed via drag"));
+	}
+	else
+	{
+		DeselectHandCard();
+		if (PreviewActor) PreviewActor->SetActorHiddenInGame(true);
+		if (GEngine)
+			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Orange, TEXT("Placement cancelled"));
+	}
+}
+
+bool ATDPlayerController::DoDeploy()
+{
+	if (!TowerToDeploy)
+	{
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("[DoDeploy] ✗ TowerToDeploy is null"));
+		return false;
+	}
+
+	ATDGameMode* GM = Cast<ATDGameMode>(GetWorld()->GetAuthGameMode());
+	if (!GM)
+	{
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("[DoDeploy] ✗ GM is null"));
+		return false;
+	}
+	if (!GM->GridManager)
+	{
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("[DoDeploy] ✗ GridManager is null"));
+		return false;
+	}
+
+	UTDGridManager* Grid = GM->GridManager;
+
+	FVector DeployLoc;
+	int32 Col, Row;
+	if (!Grid->GetDeployLocation(this, DeployLoc, Col, Row))
+	{
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("[DoDeploy] ✗ GetDeployLocation failed (DeploymentPlane not hit or invalid cell)"));
+		return false;
+	}
+
+	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, FString::Printf(TEXT("[DoDeploy] Cell=(%d,%d) Loc=(%.0f,%.0f)"), Col, Row, DeployLoc.X, DeployLoc.Y));
+
+	if (!Grid->CanDeployAtWithPlacement(Col, Row, TowerToDeploy.GetDefaultObject()->PlacementType))
+	{
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("[DoDeploy] ✗ CanDeployAtWithPlacement failed"));
+		return false;
+	}
+
+	float Cost = TowerToDeploy.GetDefaultObject()->CostToDeploy;
+	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, FString::Printf(TEXT("[DoDeploy] Cost=%.0f GM->Cost=%.0f"), Cost, GM->Cost));
+
+	if (!GM->SpendCost(Cost))
+	{
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("[DoDeploy] ✗ SpendCost failed (not enough cost)"));
+		return false;
+	}
+
+	Grid->TryOccupy(Col, Row);
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	ATDBaseTower* Tower = GetWorld()->SpawnActor<ATDBaseTower>(TowerToDeploy, DeployLoc, FRotator::ZeroRotator, SpawnParams);
+
+	if (!Tower)
+	{
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("[DoDeploy] ✗ SpawnActor failed"));
+		return false;
+	}
+
+	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("[DoDeploy] ✓ Tower spawned successfully"));
+
+	Tower->SetGridCoordinate(Col, Row);
+	FVector CamLoc;
+	FRotator CamRot;
+	GetPlayerViewPoint(CamLoc, CamRot);
+	FHitResult PlaneHit;
+	FCollisionQueryParams QueryParams;
+	QueryParams.bTraceComplex = false;
+	FVector EndTrace = CamLoc + CamRot.Vector() * 50000.0f;
+	EDeployDirection Dir = EDeployDirection::RIGHT;
+	if (GetWorld()->LineTraceSingleByChannel(PlaneHit, CamLoc, EndTrace, TDGridChannels::DeploymentPlane, QueryParams))
+	{
+		FVector CellCenter = Grid->GridToWorld(Col, Row);
+		Dir = GetDirectionFromMouse(CellCenter, PlaneHit.Location);
+	}
+	Tower->SetDeployDirection(Dir);
+
+	FVector Origin, BoxExtent;
+	Tower->GetActorBounds(false, Origin, BoxExtent);
+	float HalfHeight = BoxExtent.Z > 1.0f ? BoxExtent.Z * 0.5f : 50.0f;
+	FVector CenterLoc = DeployLoc;
+	CenterLoc.Z -= HalfHeight;
+	Tower->SetActorLocation(CenterLoc);
+
+	SelectedHandCardIndex = -1;
+	TowerToDeploy = nullptr;
+	if (PreviewActor) PreviewActor->SetActorHiddenInGame(true);
+	bHasValidHover = false;
+
+	return true;
 }
 
 EDeployDirection ATDPlayerController::GetDirectionFromMouse(FVector GridWorldCenter, FVector MouseWorldPos) const
@@ -75,20 +226,16 @@ void ATDPlayerController::UpdatePreview()
 	int32 Col, Row;
 	bool bHit = Grid->GetDeployLocation(this, DeployLoc, Col, Row);
 
-	if (!bHit)
+	if (!bHit || !TowerToDeploy)
 	{
 		if (PreviewActor) PreviewActor->SetActorHiddenInGame(true);
 		bHasValidHover = false;
 		return;
 	}
 
-	// 根据塔的部署类型检查
-	bool bCanDeploy = TowerToDeploy
-		? Grid->CanDeployAtWithPlacement(Col, Row, TowerToDeploy.GetDefaultObject()->PlacementType)
-		: Grid->CanDeployAt(Col, Row);
+	bool bCanDeploy = Grid->CanDeployAtWithPlacement(Col, Row, TowerToDeploy.GetDefaultObject()->PlacementType);
 	bCanDeploy = bCanDeploy && GM->Cost >= TowerToDeploy.GetDefaultObject()->CostToDeploy;
 
-	// 计算鼠标在格子上的方向
 	FVector CamLoc;
 	FRotator CamRot;
 	GetPlayerViewPoint(CamLoc, CamRot);
@@ -125,6 +272,12 @@ void ATDPlayerController::UpdatePreview()
 
 void ATDPlayerController::OnClick(const FInputActionValue& Value)
 {
+	if (bIsDragging)
+	{
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Orange, TEXT("[OnClick] blocked because bIsDragging"));
+		return;
+	}
+
 	if (!TowerToDeploy) return;
 
 	ATDGameMode* GM = Cast<ATDGameMode>(GetWorld()->GetAuthGameMode());
@@ -158,6 +311,20 @@ void ATDPlayerController::OnClick(const FInputActionValue& Value)
 		FVector CenterLoc = DeployLoc;
 		CenterLoc.Z -= HalfHeight;
 		Tower->SetActorLocation(CenterLoc);
+	}
+}
+
+void ATDPlayerController::OnRightClick()
+{
+	if (bIsDragging)
+	{
+		EndPlacement();
+	}
+	else if (TowerToDeploy)
+	{
+		DeselectHandCard();
+		if (PreviewActor) PreviewActor->SetActorHiddenInGame(true);
+		bHasValidHover = false;
 	}
 }
 

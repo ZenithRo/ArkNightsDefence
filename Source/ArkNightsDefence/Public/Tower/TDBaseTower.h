@@ -32,14 +32,14 @@ enum class ETowerAnimState : uint8
 UENUM(BlueprintType)
 enum class ETowerClass : uint8
 {
-	Vanguard    UMETA(DisplayName = "先锋"),
-	Guard       UMETA(DisplayName = "近卫"),
-	Caster      UMETA(DisplayName = "术师"),
-	Sniper      UMETA(DisplayName = "狙击"),
-	Defender    UMETA(DisplayName = "重装"),
-	Medic       UMETA(DisplayName = "医疗"),
-	Supporter   UMETA(DisplayName = "辅助"),
-	Specialist  UMETA(DisplayName = "特种")
+	Vanguard    UMETA(DisplayName = "Vanguard"),
+	Guard       UMETA(DisplayName = "Guard"),
+	Caster      UMETA(DisplayName = "Caster"),
+	Sniper      UMETA(DisplayName = "Sniper"),
+	Defender    UMETA(DisplayName = "Defender"),
+	Medic       UMETA(DisplayName = "Medic"),
+	Supporter   UMETA(DisplayName = "Supporter"),
+	Specialist  UMETA(DisplayName = "Specialist")
 };
 
 UCLASS()

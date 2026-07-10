@@ -6,55 +6,50 @@
 #include "Tower/TDBaseTower.h"
 #include "Engine/Texture2D.h"
 #include "UObject/SoftObjectPath.h"
-
-DEFINE_LOG_CATEGORY_STATIC(LogHandPanel, Log, All);
+#include "Blueprint/WidgetTree.h"
 
 void UTDHandPanel::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	UE_LOG(LogHandPanel, Log, TEXT("[1] NativeConstruct entered"));
-
 	if (!RootCanvas)
 	{
-		UE_LOG(LogHandPanel, Error, TEXT("[X] RootCanvas is NULL"));
-		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("HandPanel: RootCanvas is NULL"));
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("HandPanel: RootCanvas is NULL. Name the CanvasPanel 'RootCanvas'."));
 		return;
 	}
-	UE_LOG(LogHandPanel, Log, TEXT("[2] RootCanvas OK"));
 
 	if (!HandCardClass)
 	{
-		UE_LOG(LogHandPanel, Error, TEXT("[X] HandCardClass not set"));
 		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("HandPanel: HandCardClass not set!"));
 		return;
 	}
-	UE_LOG(LogHandPanel, Log, TEXT("[3] HandCardClass OK"));
 
 	APlayerController* PC = GetOwningPlayer();
 	if (!PC)
 	{
-		UE_LOG(LogHandPanel, Error, TEXT("[X] No OwningPlayer"));
 		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("HandPanel: No OwningPlayer!"));
 		return;
 	}
-	UE_LOG(LogHandPanel, Log, TEXT("[4] OwningPlayer OK"));
 
 	ATDPlayerController* TDPC = Cast<ATDPlayerController>(PC);
 	if (!TDPC)
 	{
-		UE_LOG(LogHandPanel, Error, TEXT("[X] PC is not TDPlayerController"));
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("HandPanel: OwningPlayer is not TDPlayerController!"));
 		return;
 	}
-	UE_LOG(LogHandPanel, Log, TEXT("[5] TDPlayerController OK"));
 
 	TArray<int32> SortedIndices = TDPC->GetDescendingSortedHandCardIndices();
 	if (SortedIndices.Num() == 0)
 	{
-		UE_LOG(LogHandPanel, Warning, TEXT("[X] No hand cards configured"));
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("HandPanel: No hand cards configured in PlayerController!"));
 		return;
 	}
-	UE_LOG(LogHandPanel, Log, TEXT("[6] Have %d cards"), SortedIndices.Num());
+
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green,
+			FString::Printf(TEXT("HandPanel: Creating %d cards"), SortedIndices.Num()));
+	}
 
 	const int32 CardSize = 180;
 	const int32 Gap = 1;
@@ -80,16 +75,16 @@ void UTDHandPanel::NativeConstruct()
 				Card->CardIconName = FText::FromString(IconNameStr);
 
 				FString IconPath = FString::Printf(TEXT("/Game/Resource/ico/%s.%s"), *IconNameStr, *IconNameStr);
-				UE_LOG(LogHandPanel, Log, TEXT("[icon] loading from: %s"), *IconPath);
 				Card->CardIcon = Cast<UTexture2D>(FSoftObjectPath(IconPath).TryLoad());
 			}
 
 			FString ClassName = TowerSubclass->GetName();
 			ClassName.RemoveFromEnd(TEXT("_C"));
 			FString AvatarPath = FString::Printf(TEXT("/Game/Resource/Avatar/%s_avatar.%s_avatar"), *ClassName, *ClassName);
-			UE_LOG(LogHandPanel, Log, TEXT("[avatar] loading from: %s"), *AvatarPath);
 			Card->CardAvatar = Cast<UTexture2D>(FSoftObjectPath(AvatarPath).TryLoad());
 		}
+
+		Card->Initialize();
 
 		UCanvasPanelSlot* CardSlot = RootCanvas->AddChildToCanvas(Card);
 		if (CardSlot)
@@ -100,8 +95,10 @@ void UTDHandPanel::NativeConstruct()
 			CardSlot->SetSize(FVector2D(CardSize, CardSize));
 		}
 
-		UE_LOG(LogHandPanel, Log, TEXT("[10.%d] Card %d done"), i, CardIdx);
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan,
+				FString::Printf(TEXT("  Card[%d]: idx=%d offset=(-%d, 0)"), i, CardIdx, i * (CardSize + Gap)));
+		}
 	}
-
-	UE_LOG(LogHandPanel, Log, TEXT("[11] NativeConstruct complete"));
 }

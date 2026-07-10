@@ -68,21 +68,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Tower")
 	TArray<int32> GetDescendingSortedHandCardIndices() const;
 
-	// 拖拽放置: 从手牌开始拖拽, 自动选择并进入放置模式
-	void BeginPlacement(int32 Index);
-	void EndPlacement();
-
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Tower")
 	TSubclassOf<ATDDeploymentPreviewActor> PreviewActorClass;
 
 	void OnClick(const FInputActionValue& Value);
 
-	void OnRightClick();
-
 private:
 	void UpdatePreview();
-	bool DoDeploy();
 
 	EDeployDirection GetDirectionFromMouse(FVector GridWorldCenter, FVector MouseWorldPos) const;
 
@@ -92,5 +85,4 @@ private:
 	int32 HoveredRow = -1;
 	EDeployDirection HoveredDirection = EDeployDirection::RIGHT;
 	bool bHasValidHover = false;
-	bool bIsDragging = false;
 };

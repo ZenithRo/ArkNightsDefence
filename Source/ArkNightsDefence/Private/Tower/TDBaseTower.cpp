@@ -279,8 +279,6 @@ bool ATDBaseTower::IsEnemyInRangeCells(ATDEnemy* Enemy) const
 	// Matrix 但 cells 为空 → 没有配置格子, 退回全图
 	if (AttackRangeCells.Num() == 0)
 	{
-		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red,
-			FString::Printf(TEXT("[Matrix] FAIL: Cell array is EMPTY! Check blueprint config")));
 		return true;
 	}
 
@@ -305,17 +303,8 @@ bool ATDBaseTower::IsEnemyInRangeCells(ATDEnemy* Enemy) const
 	case EDeployDirection::DOWN:	RotCol = RelRow; RotRow = -RelCol; break;
 	}
 
-	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Orange,
-		FString::Printf(TEXT("[Matrix] Mode=%d Cells=%d  Tower(%d,%d) Dir=%d  Enemy(%d,%d) -> Rel(%d,%d) -> Rot(%d,%d)"),
-			(int32)AttackRangeMode, AttackRangeCells.Num(),
-			GridCol, GridRow, (int32)DeployDirection,
-			EnemyCol, EnemyRow,
-			RelCol, RelRow, RotCol, RotRow));
-
 	for (const FAttackRangeCell& Cell : AttackRangeCells)
 	{
-		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Cyan,
-			FString::Printf(TEXT("  Cell: (%d,%d)  vs  Rot(%d,%d)"), Cell.DeltaX, Cell.DeltaY, RotCol, RotRow));
 		if (Cell.DeltaX == RotCol && Cell.DeltaY == RotRow)
 		{
 			return true;

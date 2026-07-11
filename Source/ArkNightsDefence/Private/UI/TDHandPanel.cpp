@@ -12,44 +12,17 @@ void UTDHandPanel::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	if (!RootCanvas)
-	{
-		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("HandPanel: RootCanvas is NULL. Name the CanvasPanel 'RootCanvas'."));
-		return;
-	}
-
-	if (!HandCardClass)
-	{
-		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("HandPanel: HandCardClass not set!"));
-		return;
-	}
+	if (!RootCanvas) return;
+	if (!HandCardClass) return;
 
 	APlayerController* PC = GetOwningPlayer();
-	if (!PC)
-	{
-		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("HandPanel: No OwningPlayer!"));
-		return;
-	}
+	if (!PC) return;
 
 	ATDPlayerController* TDPC = Cast<ATDPlayerController>(PC);
-	if (!TDPC)
-	{
-		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("HandPanel: OwningPlayer is not TDPlayerController!"));
-		return;
-	}
+	if (!TDPC) return;
 
 	TArray<int32> SortedIndices = TDPC->GetDescendingSortedHandCardIndices();
-	if (SortedIndices.Num() == 0)
-	{
-		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("HandPanel: No hand cards configured in PlayerController!"));
-		return;
-	}
-
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green,
-			FString::Printf(TEXT("HandPanel: Creating %d cards"), SortedIndices.Num()));
-	}
+	if (SortedIndices.Num() == 0) return;
 
 	const int32 CardSize = 180;
 	const int32 Gap = 1;
@@ -93,12 +66,6 @@ void UTDHandPanel::NativeConstruct()
 			CardSlot->SetAlignment(FVector2D(1.0f, 1.0f));
 			CardSlot->SetPosition(FVector2D(-static_cast<float>(i * (CardSize + Gap)), 0.0f));
 			CardSlot->SetSize(FVector2D(CardSize, CardSize));
-		}
-
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan,
-				FString::Printf(TEXT("  Card[%d]: idx=%d offset=(-%d, 0)"), i, CardIdx, i * (CardSize + Gap)));
 		}
 	}
 }

@@ -6,6 +6,7 @@
 #include "Tower/TDAttackRange.h"
 #include "Tower/TDDeployDirection.h"
 #include "Grid/TDGridEnums.h"
+#include "Tower/TDTowerLevelStats.h"
 #include "TDBaseTower.generated.h"
 
 class UStaticMeshComponent;
@@ -93,16 +94,22 @@ public:
 	bool bIsDead = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower")
-	float AttackDamage = 30.0f;
+	float PhysicalDamage = 30.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower")
+	float MagicDamage = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Defense")
+	float PhysicalArmor = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Defense")
+	float MagicResistance = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower")
 	float AttackRange = 300.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower")
 	float AttackInterval = 1.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower")
-	EDamageType DamageType = EDamageType::Physical;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower")
 	float CostToDeploy = 10.0f;
@@ -113,20 +120,15 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Tower|Upgrade")
 	int32 TowerLevel = 1;
 
+	// 每一级的完整属性(Index 0 = Lv1默认, 1 = Lv2, 2 = Lv3)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Tower|Upgrade")
+	TArray<struct FTowerLevelStats> LevelStats;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Upgrade")
 	int32 UpgradeCost_Lv2 = 50;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Upgrade")
 	int32 UpgradeCost_Lv3 = 100;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Upgrade")
-	float DamagePerLevel = 15.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Upgrade")
-	float IntervalReducePerLevel = 0.15f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Upgrade")
-	float RangePerLevel = 50.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Tower|Attack")
 	TArray<FAttackRangeCell> AttackRangeCells;
@@ -147,6 +149,13 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Tower")
 	ETowerPlacement PlacementType = ETowerPlacement::GROUND_ONLY;
 
+	// 攻击目标类型(地面/飞行/均可)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Combat")
+	EAttackTargetType AttackTargetType = EAttackTargetType::Land;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Tower|Attack")
+	EAttackRangeMode AttackRangeMode = EAttackRangeMode::Circle;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Tower")
 	TObjectPtr<ATDEnemy> CurrentTarget;
 
@@ -155,6 +164,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Tower")
 	bool LevelUp();
+
+	UFUNCTION(BlueprintCallable, Category = "Tower")
+	void SetLevelDirectly(int32 NewLevel);
 
 	UFUNCTION(BlueprintCallable, Category = "Tower")
 	void Fire();
@@ -177,6 +189,8 @@ public:
 	void RemoveBlockedEnemy(ATDEnemy* Enemy);
 
 	void FreeAllBlockedEnemies();
+
+	bool CanTargetEnemy(const ATDEnemy* Enemy) const;
 
 protected:
 	UFUNCTION()

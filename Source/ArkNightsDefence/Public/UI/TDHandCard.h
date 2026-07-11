@@ -6,6 +6,7 @@
 
 class UTexture2D;
 class UImage;
+class UTextBlock;
 
 UCLASS()
 class ARKNIGHTSDEFENCE_API UTDHandCard : public UUserWidget
@@ -14,6 +15,9 @@ class ARKNIGHTSDEFENCE_API UTDHandCard : public UUserWidget
 
 public:
 	virtual void NativeConstruct() override;
+
+	UFUNCTION(BlueprintCallable, Category = "HandCard")
+	void UpdateCost(float NewCost);
 
 	UPROPERTY(BlueprintReadWrite, Category = "HandCard", meta = (ExposeOnSpawn = true))
 	int32 CardIndex = -1;
@@ -35,6 +39,9 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UImage> CardAvatarImage;
+
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	TObjectPtr<UTextBlock> CostText;
 
 private:
 	UFUNCTION()

@@ -12,6 +12,9 @@ class ARKNIGHTSDEFENCE_API UTDHandPanel : public UUserWidget
 public:
 	virtual void NativeConstruct() override;
 
+	UFUNCTION(BlueprintCallable, Category = "HandPanel")
+	void RefreshAllCards();
+
 protected:
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<class UCanvasPanel> RootCanvas;

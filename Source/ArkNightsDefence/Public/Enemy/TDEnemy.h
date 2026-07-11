@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Tower/TDAttackRange.h"
 #include "TDEnemy.generated.h"
 
 class USplineComponent;
@@ -18,6 +19,21 @@ enum class EDamageType : uint8
 {
 	Physical	UMETA(DisplayName = "物理伤害"),
 	Magic		UMETA(DisplayName = "法术伤害")
+};
+
+UENUM(BlueprintType)
+enum class EEnemyType : uint8
+{
+	Land	UMETA(DisplayName = "地面"),
+	Fly		UMETA(DisplayName = "飞行")
+};
+
+UENUM(BlueprintType)
+enum class EEnemyAttackTarget : uint8
+{
+	Ground		UMETA(DisplayName = "仅地面塔"),
+	Highland	UMETA(DisplayName = "仅高台塔"),
+	Both		UMETA(DisplayName = "均可")
 };
 
 UENUM(BlueprintType)
@@ -86,6 +102,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
 	float MoveSpeed = 300.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
+	EEnemyType EnemyType = EEnemyType::Land;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Attack")
+	EEnemyAttackTarget AttackTargetType = EEnemyAttackTarget::Both;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Defense")
 	float PhysicalArmor = 0.0f;
 
@@ -99,13 +121,22 @@ public:
 	int32 LifeDamage = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Attack")
-	float AttackDamage = 10.0f;
+	float PhysicalDamage = 10.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Attack")
+	float MagicDamage = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Attack")
 	float AttackInterval = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Attack")
 	float MeleeRange = 100.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Enemy|Attack")
+	EAttackRangeMode AttackRangeMode = EAttackRangeMode::Circle;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Enemy|Attack")
+	TArray<FAttackRangeCell> AttackRangeCells;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Path")
 	TObjectPtr<AActor> PathActor;
@@ -117,7 +148,9 @@ public:
 	TObjectPtr<ATDBaseTower> CurrentTargetTower;
 
 	UFUNCTION(BlueprintCallable, Category = "Enemy")
-	void ApplyDamage(float DamageAmount, EDamageType DamageType);
+	void ApplyDamage(float InPhysical, float InMagic);
+
+	void ApplyDamageToSelf(float InPhysical, float InMagic);
 
 	// 阻挡系统
 	bool bIsBlocked = false;

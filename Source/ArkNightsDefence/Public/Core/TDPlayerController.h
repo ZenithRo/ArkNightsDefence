@@ -8,7 +8,6 @@
 class UInputMappingContext;
 class UInputAction;
 class ATDBaseTower;
-class ATDDeploymentPreviewActor;
 struct FInputActionValue;
 
 UCLASS()
@@ -28,74 +27,62 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TObjectPtr<UInputAction> ClickAction;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Tower")
-	TSubclassOf<ATDBaseTower> TowerToDeploy;
-
-	// 手牌中的可用塔列表(可在蓝图编辑器中设置)
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Tower")
-	TArray<TSubclassOf<ATDBaseTower>> HandCards;
-
-	// 当前选中的手牌索引, -1表示未选中
 	UPROPERTY(BlueprintReadOnly, Category = "Tower")
 	int32 SelectedHandCardIndex = -1;
 
 public:
-	// 选择手牌中的一张塔(自动取消上一个选中, 置空TowerToDeploy)
 	UFUNCTION(BlueprintCallable, Category = "Tower")
-	void SelectHandCard(int32 Index);
+	int32 GetHandCardCount() const;
 
-	// 取消选中
-	UFUNCTION(BlueprintCallable, Category = "Tower")
-	void DeselectHandCard();
-
-	// 获取手牌数量
-	UFUNCTION(BlueprintCallable, Category = "Tower")
-	int32 GetHandCardCount() const { return HandCards.Num(); }
-
-	// 获取指定手牌的塔类
 	UFUNCTION(BlueprintCallable, Category = "Tower")
 	TSubclassOf<ATDBaseTower> GetHandCardClass(int32 Index) const;
 
-	// 获取指定手牌的部署费用
 	UFUNCTION(BlueprintCallable, Category = "Tower")
 	float GetHandCardCost(int32 Index) const;
 
-	// 按费用从低到高返回排序后的索引数组(用于手牌排列)
+	UFUNCTION(BlueprintCallable, Category = "Tower")
+	int32 GetHandCardLevel(int32 Index) const;
+
 	UFUNCTION(BlueprintCallable, Category = "Tower")
 	TArray<int32> GetSortedHandCardIndices() const;
 
-	// 按费用从高到低返回排序后的索引数组(右边→左边排列)
 	UFUNCTION(BlueprintCallable, Category = "Tower")
 	TArray<int32> GetDescendingSortedHandCardIndices() const;
 
-	// 拖拽放置 (从WBP_HandCard的Button OnPressed/OnReleased调用)
+	// 手牌按钮按下
 	UFUNCTION(BlueprintCallable, Category = "Tower")
 	void BeginPlacement(int32 Index);
 
+	// 手牌按钮弹起
 	UFUNCTION(BlueprintCallable, Category = "Tower")
 	void EndPlacement();
 
-protected:
-	UPROPERTY(EditDefaultsOnly, Category = "Tower")
-	TSubclassOf<ATDDeploymentPreviewActor> PreviewActorClass;
+	// 塔升级后调用: 提升对应手牌等级, 刷新UI费用
+	UFUNCTION(BlueprintCallable, Category = "Tower")
+	void OnTowerUpgraded(TSubclassOf<ATDBaseTower> TowerClass);
+
+	UFUNCTION(BlueprintCallable, Category = "Tower")
+	void RefreshHandCards();
 
 	void OnClick(const FInputActionValue& Value);
 
 private:
-	void UpdatePreview();
+	void UpdateGhostToMouse();
+	void DeployAtCell(int32 Col, int32 Row);
+	void CancelPlacement();
+	bool GetMouseGridPosition(int32& OutCol, int32& OutRow) const;
 
-	void ExecutePendingDeploy();
+	class AActor* GhostActor = nullptr;
 
-	bool GetCursorPlaneLocation(FVector& OutPlanePos) const;
+	// 每个手牌位的当前等级(默认1), Index对应LevelHandCards中的顺序
+	UPROPERTY()
+	TArray<int32> HandCardLevels;
 
-	EDeployDirection GetDirectionFromMouse(FVector GridWorldCenter, FVector MouseWorldPos) const;
+	int32 HandCardIndex = -1;
+	TSubclassOf<ATDBaseTower> PendingTowerClass;
 
-	TObjectPtr<ATDDeploymentPreviewActor> PreviewActor;
-
-	int32 HoveredCol = -1;
-	int32 HoveredRow = -1;
-	EDeployDirection HoveredDirection = EDeployDirection::RIGHT;
-	bool bHasValidHover = false;
-	bool bIsDragging = false;
-	int32 PendingDeployCountdown = -1;
+	bool bDragging = false;
+	int32 DragCol = -1;
+	int32 DragRow = -1;
+	int32 PendingDeployCountdown = 0;
 };

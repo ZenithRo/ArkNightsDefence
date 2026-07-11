@@ -260,7 +260,29 @@ void ATDEnemy::MeleeAttack()
 	if (!CurrentTargetTower || CurrentTargetTower->bIsDead) return;
 	if (AnimState != EEnemyAnimState::Attacking) return;
 
-	CurrentTargetTower->TakeDamage(AttackDamage, FDamageEvent(), nullptr, nullptr);
+	float PhysDamage = FMath::Max(1.0f, PhysicalDamage - CurrentTargetTower->PhysicalArmor);
+	float MagDamage = FMath::Max(1.0f, MagicDamage * (1.0f - CurrentTargetTower->MagicResistance / 100.0f));
+
+	CurrentTargetTower->CurrentHealth -= (PhysDamage + MagDamage);
+	if (CurrentTargetTower->CurrentHealth <= 0.0f)
+	{
+		CurrentTargetTower->Die();
+	}
+}
+
+void ATDEnemy::ApplyDamageToSelf(float InPhysical, float InMagic)
+{
+	if (bIsDead) return;
+
+	float PhysDamage = FMath::Max(1.0f, InPhysical - PhysicalArmor);
+	float MagDamage = FMath::Max(1.0f, InMagic * (1.0f - MagicResistance / 100.0f));
+
+	CurrentHealth -= (PhysDamage + MagDamage);
+
+	if (CurrentHealth <= 0.0f)
+	{
+		Die();
+	}
 }
 
 void ATDEnemy::FindNearestTower()
@@ -280,7 +302,50 @@ void ATDEnemy::FindNearestTower()
 		if (!Tower || Tower->bIsDead) continue;
 
 		float Dist = FVector::Dist(GetActorLocation(), Tower->GetActorLocation());
-		if (Dist <= ClosestDist)
+		if (Dist > MeleeRange) continue;
+
+		// 攻击目标类型过滤(地面塔/高台塔)
+		if (AttackTargetType != EEnemyAttackTarget::Both)
+		{
+			ATDGameMode* GM = Cast<ATDGameMode>(GetWorld()->GetAuthGameMode());
+			if (GM && GM->GridManager)
+			{
+				ETileType TileType = GM->GridManager->GetTileType(Tower->GridCol, Tower->GridRow);
+				bool bIsHighland = (TileType == ETileType::HIGHLAND);
+
+				if (AttackTargetType == EEnemyAttackTarget::Ground && bIsHighland) continue;
+				if (AttackTargetType == EEnemyAttackTarget::Highland && !bIsHighland) continue;
+			}
+		}
+
+		// 矩阵模式: 检查格子是否在攻击范围内
+		if (AttackRangeMode == EAttackRangeMode::Matrix && AttackRangeCells.Num() > 0)
+		{
+			ATDGameMode* GM = Cast<ATDGameMode>(GetWorld()->GetAuthGameMode());
+			if (GM && GM->GridManager)
+			{
+				int32 MyCol, MyRow, TowerCol, TowerRow;
+				if (GM->GridManager->WorldToGrid(GetActorLocation(), MyCol, MyRow) &&
+					GM->GridManager->WorldToGrid(Tower->GetActorLocation(), TowerCol, TowerRow))
+				{
+					int32 RelCol = TowerCol - MyCol;
+					int32 RelRow = TowerRow - MyRow;
+
+					bool bInRange = false;
+					for (const FAttackRangeCell& Cell : AttackRangeCells)
+					{
+						if (Cell.DeltaX == RelCol && Cell.DeltaY == RelRow)
+						{
+							bInRange = true;
+							break;
+						}
+					}
+					if (!bInRange) continue;
+				}
+			}
+		}
+
+		if (Dist < ClosestDist)
 		{
 			ClosestDist = Dist;
 			CurrentTargetTower = Tower;
@@ -290,7 +355,7 @@ void ATDEnemy::FindNearestTower()
 
 void ATDEnemy::OnBlocked(ATDBaseTower* Blocker)
 {
-	if (bIsBlocked) return;
+	if (bIsBlocked || !Blocker) return;
 	bIsBlocked = true;
 	BlockedByTower = Blocker;
 	Blocker->AddBlockedEnemy(this);
@@ -307,32 +372,9 @@ void ATDEnemy::OnUnblocked()
 	BlockedByTower = nullptr;
 }
 
-void ATDEnemy::ApplyDamage(float DamageAmount, EDamageType DamageType)
+void ATDEnemy::ApplyDamage(float InPhysical, float InMagic)
 {
-	if (bIsDead) return;
-
-	float FinalDamage = 0.0f;
-
-	if (DamageType == EDamageType::Physical)
-	{
-		FinalDamage = DamageAmount - PhysicalArmor;
-	}
-	else
-	{
-		FinalDamage = DamageAmount * (1.0f - MagicResistance / 100.0f);
-	}
-
-	if (FinalDamage < 1.0f)
-	{
-		FinalDamage = 1.0f;
-	}
-
-	CurrentHealth -= FinalDamage;
-
-	if (CurrentHealth <= 0.0f)
-	{
-		Die();
-	}
+	ApplyDamageToSelf(InPhysical, InMagic);
 }
 
 void ATDEnemy::Die()

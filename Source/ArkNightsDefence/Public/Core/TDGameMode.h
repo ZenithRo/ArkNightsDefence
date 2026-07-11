@@ -46,6 +46,10 @@ public:
 	UPROPERTY()
 	TObjectPtr<class UTDHandPanel> HandPanel;
 
+	// 当前关卡的手牌(塔类列表), 每个关卡在关卡GameMode蓝图中设置不同的牌组
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Game|HandCards")
+	TArray<TSubclassOf<class ATDBaseTower>> LevelHandCards;
+
 	// 网格管理器
 	UPROPERTY(BlueprintReadOnly, Category = "Game|Grid")
 	TObjectPtr<class UTDGridManager> GridManager;

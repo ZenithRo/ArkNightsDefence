@@ -102,3 +102,23 @@ void UTDHandPanel::NativeConstruct()
 		}
 	}
 }
+
+void UTDHandPanel::RefreshAllCards()
+{
+	if (!RootCanvas) return;
+
+	APlayerController* PC = GetOwningPlayer();
+	ATDPlayerController* TDPC = Cast<ATDPlayerController>(PC);
+	if (!TDPC) return;
+
+	TArray<UWidget*> Children = RootCanvas->GetAllChildren();
+	for (UWidget* Child : Children)
+	{
+		UTDHandCard* Card = Cast<UTDHandCard>(Child);
+		if (Card)
+		{
+			float NewCost = TDPC->GetHandCardCost(Card->CardIndex);
+			Card->UpdateCost(NewCost);
+		}
+	}
+}

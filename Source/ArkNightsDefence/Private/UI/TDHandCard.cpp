@@ -1,5 +1,6 @@
 #include "UI/TDHandCard.h"
 #include "Components/Image.h"
+#include "Components/TextBlock.h"
 #include "Components/Button.h"
 #include "Blueprint/WidgetTree.h"
 #include "Engine/Engine.h"
@@ -24,6 +25,8 @@ void UTDHandCard::NativeConstruct()
 		CardAvatarImage->SetDesiredSizeOverride(FVector2D(180.0f, 180.0f));
 	}
 
+	UpdateCost(CardCost);
+
 	UButton* Btn = nullptr;
 	TArray<UWidget*> Widgets;
 	WidgetTree->GetAllWidgets(Widgets);
@@ -47,6 +50,15 @@ void UTDHandCard::NativeConstruct()
 	{
 		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red,
 			FString::Printf(TEXT("[HandCard] Index=%d FAIL: no Button found"), CardIndex));
+	}
+}
+
+void UTDHandCard::UpdateCost(float NewCost)
+{
+	CardCost = NewCost;
+	if (CostText)
+	{
+		CostText->SetText(FText::AsNumber(int32(NewCost)));
 	}
 }
 

@@ -114,6 +114,28 @@ void ATDBaseTower::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (!LevelStats.IsValidIndex(0))
+	{
+		FTowerLevelStats AutoLv1;
+		AutoLv1.MaxHealth = MaxHealth;
+		AutoLv1.PhysicalDamage = PhysicalDamage;
+		AutoLv1.MagicDamage = MagicDamage;
+		AutoLv1.AttackInterval = AttackInterval;
+		AutoLv1.CostToDeploy = CostToDeploy;
+		AutoLv1.PhysicalArmor = PhysicalArmor;
+		AutoLv1.MagicResistance = MagicResistance;
+		LevelStats.Insert(AutoLv1, 0);
+	}
+
+	const FTowerLevelStats& Lv1 = LevelStats[0];
+	MaxHealth = Lv1.MaxHealth;
+	PhysicalDamage = Lv1.PhysicalDamage;
+	MagicDamage = Lv1.MagicDamage;
+	AttackInterval = Lv1.AttackInterval;
+	CostToDeploy = Lv1.CostToDeploy;
+	PhysicalArmor = Lv1.PhysicalArmor;
+	MagicResistance = Lv1.MagicResistance;
+
 	CurrentHealth = MaxHealth;
 	bIsDead = false;
 
@@ -146,8 +168,6 @@ void ATDBaseTower::BeginPlay()
 	}
 
 	GetWorldTimerManager().SetTimer(FireTimerHandle, this, &ATDBaseTower::Fire, AttackInterval, true);
-
-	FindTarget();
 
 	// 初始化血条(浅蓝色)
 	if (HealthBarComp)
@@ -187,7 +207,8 @@ void ATDBaseTower::Tick(float DeltaTime)
 
 	if (!CurrentTarget || CurrentTarget->CurrentHealth <= 0.0f ||
 		!IsEnemyInRangeCells(CurrentTarget) ||
-		FVector::Dist(GetActorLocation(), CurrentTarget->GetActorLocation()) > AttackRange)
+		(AttackRangeMode == EAttackRangeMode::Circle &&
+		 FVector::Dist(GetActorLocation(), CurrentTarget->GetActorLocation()) > AttackRange))
 	{
 		FindTarget();
 	}
@@ -245,8 +266,21 @@ void ATDBaseTower::OnAnimComplete(UTrackEntry* Entry)
 
 bool ATDBaseTower::IsEnemyInRangeCells(ATDEnemy* Enemy) const
 {
-	if (!Enemy || GridCol < 0 || GridRow < 0 || AttackRangeCells.Num() == 0)
+	if (!Enemy || GridCol < 0 || GridRow < 0)
 	{
+		return true;
+	}
+
+	if (AttackRangeMode == EAttackRangeMode::Circle)
+	{
+		return true;
+	}
+
+	// Matrix 但 cells 为空 → 没有配置格子, 退回全图
+	if (AttackRangeCells.Num() == 0)
+	{
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red,
+			FString::Printf(TEXT("[Matrix] FAIL: Cell array is EMPTY! Check blueprint config")));
 		return true;
 	}
 
@@ -262,27 +296,26 @@ bool ATDBaseTower::IsEnemyInRangeCells(ATDEnemy* Enemy) const
 	int32 RelCol = EnemyCol - GridCol;
 	int32 RelRow = EnemyRow - GridRow;
 
-	// 根据部署方向旋转相对坐标
 	int32 RotCol = RelCol, RotRow = RelRow;
 	switch (DeployDirection)
 	{
-	case EDeployDirection::RIGHT:
-		break;
-	case EDeployDirection::LEFT:
-		RotRow = -RelRow;
-		break;
-	case EDeployDirection::UP:
-		RotCol = RelRow;
-		RotRow = RelCol;
-		break;
-	case EDeployDirection::DOWN:
-		RotCol = -RelRow;
-		RotRow = RelCol;
-		break;
+	case EDeployDirection::RIGHT:	RotRow = -RelRow; break;
+	case EDeployDirection::LEFT:	break;
+	case EDeployDirection::UP:		RotCol = -RelRow; RotRow = RelCol; break;
+	case EDeployDirection::DOWN:	RotCol = RelRow; RotRow = -RelCol; break;
 	}
+
+	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Orange,
+		FString::Printf(TEXT("[Matrix] Mode=%d Cells=%d  Tower(%d,%d) Dir=%d  Enemy(%d,%d) -> Rel(%d,%d) -> Rot(%d,%d)"),
+			(int32)AttackRangeMode, AttackRangeCells.Num(),
+			GridCol, GridRow, (int32)DeployDirection,
+			EnemyCol, EnemyRow,
+			RelCol, RelRow, RotCol, RotRow));
 
 	for (const FAttackRangeCell& Cell : AttackRangeCells)
 	{
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Cyan,
+			FString::Printf(TEXT("  Cell: (%d,%d)  vs  Rot(%d,%d)"), Cell.DeltaX, Cell.DeltaY, RotCol, RotRow));
 		if (Cell.DeltaX == RotCol && Cell.DeltaY == RotRow)
 		{
 			return true;
@@ -308,16 +341,17 @@ void ATDBaseTower::FindTarget()
 		if (!Enemy || Enemy->CurrentHealth <= 0.0f) continue;
 		if (!IsEnemyInRangeCells(Enemy)) continue;
 
-		float Dist = FVector::Dist(GetActorLocation(), Enemy->GetActorLocation());
-		if (Dist <= AttackRange)
+		if (AttackRangeMode == EAttackRangeMode::Circle)
 		{
-			Candidates.Add(Enemy);
+			float Dist = FVector::Dist(GetActorLocation(), Enemy->GetActorLocation());
+			if (Dist > AttackRange) continue;
 		}
+
+		Candidates.Add(Enemy);
 	}
 
 	if (Candidates.Num() == 0) return;
 
-	// 使用目标选择器排序
 	if (TargetSelector)
 	{
 		TArray<ATDEnemy*> Selected = TargetSelector->SelectTargets(Candidates, this);
@@ -328,14 +362,13 @@ void ATDBaseTower::FindTarget()
 	}
 	else
 	{
-		// 回退: 最近距离优先
 		ATDEnemy* ClosestEnemy = nullptr;
-		float MinDist = AttackRange;
+		float MinDist = FLT_MAX;
 
 		for (ATDEnemy* Enemy : Candidates)
 		{
 			float Dist = FVector::Dist(GetActorLocation(), Enemy->GetActorLocation());
-			if (Dist <= MinDist)
+			if (Dist < MinDist)
 			{
 				MinDist = Dist;
 				ClosestEnemy = Enemy;
@@ -354,7 +387,7 @@ void ATDBaseTower::Fire()
 		if (!CurrentTarget) return;
 	}
 
-	CurrentTarget->ApplyDamage(AttackDamage, DamageType);
+	CurrentTarget->ApplyDamage(PhysicalDamage, MagicDamage);
 }
 
 float ATDBaseTower::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
@@ -418,6 +451,39 @@ bool ATDBaseTower::LevelUp()
 	return true;
 }
 
+void ATDBaseTower::SetLevelDirectly(int32 NewLevel)
+{
+	int32 ClampedLevel = FMath::Clamp(NewLevel, 1, 3);
+	if (ClampedLevel <= TowerLevel) return;
+
+	float OldMaxHealth = MaxHealth;
+
+	for (int32 Lvl = TowerLevel + 1; Lvl <= ClampedLevel; Lvl++)
+	{
+		int32 Idx = Lvl - 1;
+		if (!LevelStats.IsValidIndex(Idx)) break;
+
+		const FTowerLevelStats& Stats = LevelStats[Idx];
+		MaxHealth = Stats.MaxHealth;
+		PhysicalDamage = Stats.PhysicalDamage;
+		MagicDamage = Stats.MagicDamage;
+		AttackInterval = Stats.AttackInterval;
+		CostToDeploy = Stats.CostToDeploy;
+		PhysicalArmor = Stats.PhysicalArmor;
+		MagicResistance = Stats.MagicResistance;
+
+		TowerLevel = Lvl;
+	}
+
+	float HealthDelta = MaxHealth - OldMaxHealth;
+	CurrentHealth = FMath::Min(MaxHealth, CurrentHealth + HealthDelta);
+
+	if (RangeSphere)
+	{
+		RangeSphere->SetSphereRadius(AttackRange);
+	}
+}
+
 int32 ATDBaseTower::GetUpgradeCost() const
 {
 	if (TowerLevel == 1) return UpgradeCost_Lv2;
@@ -427,9 +493,22 @@ int32 ATDBaseTower::GetUpgradeCost() const
 
 void ATDBaseTower::ApplyLevelUpStats()
 {
-	AttackDamage += DamagePerLevel;
-	AttackInterval = FMath::Max(0.3f, AttackInterval - IntervalReducePerLevel);
-	AttackRange += RangePerLevel;
+	int32 NewLevelIndex = TowerLevel - 1;
+	if (!LevelStats.IsValidIndex(NewLevelIndex)) return;
+
+	const FTowerLevelStats& Stats = LevelStats[NewLevelIndex];
+	float OldMaxHealth = MaxHealth;
+
+	MaxHealth = Stats.MaxHealth;
+	PhysicalDamage = Stats.PhysicalDamage;
+	MagicDamage = Stats.MagicDamage;
+	AttackInterval = Stats.AttackInterval;
+	CostToDeploy = Stats.CostToDeploy;
+	PhysicalArmor = Stats.PhysicalArmor;
+	MagicResistance = Stats.MagicResistance;
+
+	float HealthDelta = MaxHealth - OldMaxHealth;
+	CurrentHealth = FMath::Min(MaxHealth, CurrentHealth + HealthDelta);
 
 	if (RangeSphere)
 	{

@@ -48,10 +48,10 @@ public:
 	FVector GridToWorld(int32 Col, int32 Row) const;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid")
-	int32 NumCols = 10;
+	int32 NumCols = 16;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid")
-	int32 NumRows = 8;
+	int32 NumRows = 16;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid")
 	float CellSize = 200.0f;

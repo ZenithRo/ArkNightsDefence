@@ -46,6 +46,16 @@ void ATDPlayerController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (PendingDeployCountdown > 0)
+	{
+		PendingDeployCountdown--;
+		if (PendingDeployCountdown == 0)
+		{
+			ExecutePendingDeploy();
+			return;
+		}
+	}
+
 	UpdatePreview();
 }
 
@@ -64,45 +74,78 @@ EDeployDirection ATDPlayerController::GetDirectionFromMouse(FVector GridWorldCen
 	}
 }
 
+bool ATDPlayerController::GetCursorPlaneLocation(FVector& OutPlanePos) const
+{
+	ULocalPlayer* LP = GetLocalPlayer();
+	if (!LP || !LP->ViewportClient || !LP->ViewportClient->Viewport) return false;
+
+	FViewport* VP = LP->ViewportClient->Viewport;
+	FVector2D CursorPos(VP->GetMouseX(), VP->GetMouseY());
+
+	FVector WorldOrigin, WorldDir;
+	if (!DeprojectScreenPositionToWorld(CursorPos.X, CursorPos.Y, WorldOrigin, WorldDir))
+	{
+		return false;
+	}
+
+	FHitResult Hit;
+	FCollisionQueryParams QP;
+	QP.bTraceComplex = false;
+	FVector EndTrace = WorldOrigin + WorldDir * 50000.0f;
+	if (GetWorld()->LineTraceSingleByChannel(Hit, WorldOrigin, EndTrace, TDGridChannels::DeploymentPlane, QP))
+	{
+		OutPlanePos = Hit.Location;
+		return true;
+	}
+
+	float t = -WorldOrigin.Z / WorldDir.Z;
+	if (t <= 0.0f) return false;
+	OutPlanePos = WorldOrigin + WorldDir * t;
+	return true;
+}
+
 void ATDPlayerController::UpdatePreview()
 {
 	ATDGameMode* GM = Cast<ATDGameMode>(GetWorld()->GetAuthGameMode());
-	if (!GM || !GM->GridManager) return;
-
-	UTDGridManager* Grid = GM->GridManager;
-
-	FVector DeployLoc;
-	int32 Col, Row;
-	bool bHit = Grid->GetDeployLocation(this, DeployLoc, Col, Row);
-
-	if (!bHit)
+	if (!GM || !GM->GridManager)
 	{
 		if (PreviewActor) PreviewActor->SetActorHiddenInGame(true);
 		bHasValidHover = false;
 		return;
 	}
 
-	// 根据塔的部署类型检查
+	UTDGridManager* Grid = GM->GridManager;
+
+	if (!TowerToDeploy && !bIsDragging)
+	{
+		if (PreviewActor) PreviewActor->SetActorHiddenInGame(true);
+		bHasValidHover = false;
+		return;
+	}
+
+	FVector PlanePos;
+	if (!GetCursorPlaneLocation(PlanePos))
+	{
+		if (PreviewActor) PreviewActor->SetActorHiddenInGame(true);
+		bHasValidHover = false;
+		return;
+	}
+
+	int32 Col, Row;
+	if (!Grid->WorldToGrid(PlanePos, Col, Row))
+	{
+		if (PreviewActor) PreviewActor->SetActorHiddenInGame(true);
+		bHasValidHover = false;
+		return;
+	}
+
 	bool bCanDeploy = TowerToDeploy
 		? Grid->CanDeployAtWithPlacement(Col, Row, TowerToDeploy.GetDefaultObject()->PlacementType)
 		: Grid->CanDeployAt(Col, Row);
-	bCanDeploy = bCanDeploy && GM->Cost >= TowerToDeploy.GetDefaultObject()->CostToDeploy;
+	bCanDeploy = bCanDeploy && TowerToDeploy && GM->Cost >= TowerToDeploy.GetDefaultObject()->CostToDeploy;
 
-	// 计算鼠标在格子上的方向
-	FVector CamLoc;
-	FRotator CamRot;
-	GetPlayerViewPoint(CamLoc, CamRot);
-
-	FHitResult PlaneHit;
-	FCollisionQueryParams QueryParams;
-	QueryParams.bTraceComplex = false;
-	FVector EndTrace = CamLoc + CamRot.Vector() * 50000.0f;
-
-	if (GetWorld()->LineTraceSingleByChannel(PlaneHit, CamLoc, EndTrace, TDGridChannels::DeploymentPlane, QueryParams))
-	{
-		FVector CellCenter = Grid->GridToWorld(Col, Row);
-		HoveredDirection = GetDirectionFromMouse(CellCenter, PlaneHit.Location);
-	}
+	FVector CellCenter = Grid->GridToWorld(Col, Row);
+	HoveredDirection = GetDirectionFromMouse(CellCenter, PlanePos);
 
 	if (!PreviewActor && PreviewActorClass)
 	{
@@ -114,35 +157,87 @@ void ATDPlayerController::UpdatePreview()
 	if (PreviewActor)
 	{
 		PreviewActor->SetActorHiddenInGame(false);
-		PreviewActor->SetWorldLocationAndGrid(DeployLoc, Col, Row);
+		PreviewActor->SetWorldLocationAndGrid(PlanePos, Col, Row);
 		PreviewActor->SetValid(bCanDeploy);
 	}
 
 	HoveredCol = Col;
 	HoveredRow = Row;
-	bHasValidHover = bHit;
+	bHasValidHover = true;
+
+	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 0.1f, FColor::Purple,
+		FString::Printf(TEXT("[Preview] hover=(%d,%d) bIsDrag=%d bCanDeploy=%d"), Col, Row, bIsDragging ? 1 : 0, bCanDeploy ? 1 : 0));
 }
 
-void ATDPlayerController::OnClick(const FInputActionValue& Value)
+void ATDPlayerController::ExecutePendingDeploy()
 {
-	if (!TowerToDeploy) return;
+	PendingDeployCountdown = -1;
+
+	if (!TowerToDeploy)
+	{
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Orange, TEXT("[Deploy] cancelled: no tower"));
+		if (PreviewActor) PreviewActor->SetActorHiddenInGame(true);
+		bHasValidHover = false;
+		return;
+	}
 
 	ATDGameMode* GM = Cast<ATDGameMode>(GetWorld()->GetAuthGameMode());
-	if (!GM || !GM->GridManager) return;
+	if (!GM || !GM->GridManager)
+	{
+		DeselectHandCard();
+		if (PreviewActor) PreviewActor->SetActorHiddenInGame(true);
+		return;
+	}
 
 	UTDGridManager* Grid = GM->GridManager;
 
-	if (!bHasValidHover) return;
-	if (!Grid->CanDeployAtWithPlacement(HoveredCol, HoveredRow, TowerToDeploy.GetDefaultObject()->PlacementType)) return;
+	FVector PlanePos;
+	if (!GetCursorPlaneLocation(PlanePos))
+	{
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Orange, TEXT("[Deploy] cancelled: GetCursorPlaneLocation failed"));
+		DeselectHandCard();
+		if (PreviewActor) PreviewActor->SetActorHiddenInGame(true);
+		return;
+	}
 
-	if (!GM->SpendCost(TowerToDeploy.GetDefaultObject()->CostToDeploy)) return;
+	int32 DeployCol, DeployRow;
+	if (!Grid->WorldToGrid(PlanePos, DeployCol, DeployRow))
+	{
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Orange,
+			FString::Printf(TEXT("[Deploy] cancelled: invalid cell at (%.0f,%.0f)"), PlanePos.X, PlanePos.Y));
+		DeselectHandCard();
+		if (PreviewActor) PreviewActor->SetActorHiddenInGame(true);
+		return;
+	}
 
-	FVector DeployLoc;
-	int32 Col, Row;
-	if (!Grid->GetDeployLocation(this, DeployLoc, Col, Row)) return;
-	if (Col != HoveredCol || Row != HoveredRow) return;
+	if (!Grid->IsValidCell(DeployCol, DeployRow))
+	{
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Orange, TEXT("[Deploy] cancelled: out of bounds"));
+		DeselectHandCard();
+		if (PreviewActor) PreviewActor->SetActorHiddenInGame(true);
+		return;
+	}
 
-	Grid->TryOccupy(Col, Row);
+	if (!Grid->CanDeployAtWithPlacement(DeployCol, DeployRow, TowerToDeploy.GetDefaultObject()->PlacementType))
+	{
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Orange, TEXT("[Deploy] cancelled: invalid cell"));
+		DeselectHandCard();
+		if (PreviewActor) PreviewActor->SetActorHiddenInGame(true);
+		return;
+	}
+
+	if (!GM->SpendCost(TowerToDeploy.GetDefaultObject()->CostToDeploy))
+	{
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Orange, TEXT("[Deploy] cancelled: cannot spend"));
+		DeselectHandCard();
+		return;
+	}
+
+	FVector GridCenter = Grid->GridToWorld(DeployCol, DeployRow);
+	Grid->TryOccupy(DeployCol, DeployRow);
+
+	float SurfaceZ = Grid->GetTileType(DeployCol, DeployRow) == ETileType::HIGHLAND ? 110.0f : 0.0f;
+	FVector DeployLoc = FVector(GridCenter.X, GridCenter.Y, SurfaceZ);
 
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -150,15 +245,22 @@ void ATDPlayerController::OnClick(const FInputActionValue& Value)
 
 	if (Tower)
 	{
-		Tower->SetGridCoordinate(Col, Row);
+		Tower->SetGridCoordinate(DeployCol, DeployRow);
 		Tower->SetDeployDirection(HoveredDirection);
-		FVector Origin, BoxExtent;
-		Tower->GetActorBounds(false, Origin, BoxExtent);
-		float HalfHeight = BoxExtent.Z > 1.0f ? BoxExtent.Z * 0.5f : 50.0f;
-		FVector CenterLoc = DeployLoc;
-		CenterLoc.Z -= HalfHeight;
-		Tower->SetActorLocation(CenterLoc);
 	}
+
+	SelectedHandCardIndex = -1;
+	TowerToDeploy = nullptr;
+	if (PreviewActor) PreviewActor->SetActorHiddenInGame(true);
+	bHasValidHover = false;
+}
+
+void ATDPlayerController::OnClick(const FInputActionValue& Value)
+{
+	// 部署只能通过拖拽(手牌按下→松开→5帧延迟→ExecutePendingDeploy)
+	// 点击地面不部署任何东西, 避免与拖拽系统冲突
+	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Orange,
+		TEXT("[OnClick] ignored - deploy via drag only"));
 }
 
 void ATDPlayerController::SelectHandCard(int32 Index)
@@ -167,6 +269,62 @@ void ATDPlayerController::SelectHandCard(int32 Index)
 
 	TowerToDeploy = HandCards[Index];
 	SelectedHandCardIndex = Index;
+}
+
+void ATDPlayerController::BeginPlacement(int32 Index)
+{
+	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow,
+		FString::Printf(TEXT("[BeginPlacement] Index=%d"), Index));
+
+	if (PendingDeployCountdown >= 0)
+	{
+		PendingDeployCountdown = -1;
+	}
+
+	if (!HandCards.IsValidIndex(Index))
+	{
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red,
+			TEXT("[BeginPlacement] FAIL: invalid index"));
+		return;
+	}
+
+	TowerToDeploy = HandCards[Index];
+	SelectedHandCardIndex = Index;
+	bIsDragging = true;
+	bHasValidHover = false;
+
+	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow,
+		FString::Printf(TEXT("[BeginPlacement] OK Index=%d Tower=%s"), Index, TowerToDeploy ? TEXT("Y") : TEXT("N")));
+}
+
+void ATDPlayerController::EndPlacement()
+{
+	if (!bIsDragging)
+	{
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Orange,
+			TEXT("[EndPlacement] SKIP: not dragging"));
+		return;
+	}
+	bIsDragging = false;
+
+	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Cyan,
+		TEXT("[EndPlacement] setting 5-frame delay"));
+
+	if (!TowerToDeploy && SelectedHandCardIndex >= 0 && HandCards.IsValidIndex(SelectedHandCardIndex))
+	{
+		TowerToDeploy = HandCards[SelectedHandCardIndex];
+	}
+
+	if (!TowerToDeploy)
+	{
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Orange,
+			TEXT("[EndPlacement] FAIL: no tower"));
+		DeselectHandCard();
+		if (PreviewActor) PreviewActor->SetActorHiddenInGame(true);
+		return;
+	}
+
+	PendingDeployCountdown = 5;
 }
 
 void ATDPlayerController::DeselectHandCard()

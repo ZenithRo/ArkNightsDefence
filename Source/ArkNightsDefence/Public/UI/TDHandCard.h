@@ -35,4 +35,11 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UImage> CardAvatarImage;
+
+private:
+	UFUNCTION()
+	void OnCardPressedInternal();
+
+	UFUNCTION()
+	void OnCardReleasedInternal();
 };

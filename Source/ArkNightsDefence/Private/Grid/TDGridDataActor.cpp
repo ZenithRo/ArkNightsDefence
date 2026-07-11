@@ -142,13 +142,20 @@ void ATDGridDataActor::ApplyToGridManager(UTDGridManager* Manager) const
 {
 	if (!Manager) return;
 
-	FVector Corner = GridOrigin - FVector(NumCols * CellSize * 0.5f, NumRows * CellSize * 0.5f, 0.0f);
-	Manager->Initialize(NumCols, NumRows, CellSize, Corner);
+	Manager->Initialize(NumCols, NumRows, CellSize, GridOrigin);
 
-	for (int32 i = 0; i < Cells.Num() && i < Manager->Cells.Num(); i++)
+	for (int32 i = 0; i < Manager->Cells.Num(); i++)
 	{
-		Manager->Cells[i].bDeployable = Cells[i].bDeployable;
-		Manager->Cells[i].TileType = Cells[i].TileType;
+		if (Cells.IsValidIndex(i))
+		{
+			Manager->Cells[i].bDeployable = Cells[i].bDeployable;
+			Manager->Cells[i].TileType = Cells[i].TileType;
+		}
+		else
+		{
+			Manager->Cells[i].bDeployable = false;
+			Manager->Cells[i].TileType = ETileType::BLOCKED;
+		}
 	}
 }
 
@@ -159,7 +166,21 @@ void ATDGridDataActor::ImportFromDataAsset(const UTDGridDataAsset* Asset)
 	NumCols = Asset->NumCols;
 	NumRows = Asset->NumRows;
 	CellSize = Asset->CellSize;
-	Cells = Asset->Cells;
+
+	Cells.Empty();
+	Cells.SetNum(NumCols * NumRows);
+	for (int32 i = 0; i < Cells.Num(); i++)
+	{
+		if (Asset->Cells.IsValidIndex(i))
+		{
+			Cells[i] = Asset->Cells[i];
+		}
+		else
+		{
+			Cells[i].TileType = ETileType::BLOCKED;
+			Cells[i].bDeployable = false;
+		}
+	}
 }
 
 void ATDGridDataActor::ExportToDataAsset(UTDGridDataAsset* Asset) const

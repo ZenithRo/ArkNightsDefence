@@ -26,19 +26,21 @@ int32 UTDGridManager::GetIndex(int32 Col, int32 Row) const
 
 bool UTDGridManager::WorldToGrid(FVector WorldPos, int32& OutCol, int32& OutRow) const
 {
-	float LocalX = WorldPos.X - GridOrigin.X;
-	float LocalY = WorldPos.Y - GridOrigin.Y;
-
+	float HalfExtentX = NumCols * CellSize * 0.5f;
+	float HalfExtentY = NumRows * CellSize * 0.5f;
+	float LocalX = WorldPos.X - (GridOrigin.X - HalfExtentX);
+	float LocalY = WorldPos.Y - (GridOrigin.Y - HalfExtentY);
 	OutCol = FMath::FloorToInt(LocalX / CellSize);
 	OutRow = FMath::FloorToInt(LocalY / CellSize);
-
 	return IsValidCell(OutCol, OutRow);
 }
 
 FVector UTDGridManager::GridToWorld(int32 Col, int32 Row) const
 {
-	float CenterX = GridOrigin.X + (Col + 0.5f) * CellSize;
-	float CenterY = GridOrigin.Y + (Row + 0.5f) * CellSize;
+	float HalfExtentX = NumCols * CellSize * 0.5f;
+	float HalfExtentY = NumRows * CellSize * 0.5f;
+	float CenterX = (GridOrigin.X - HalfExtentX) + (Col + 0.5f) * CellSize;
+	float CenterY = (GridOrigin.Y - HalfExtentY) + (Row + 0.5f) * CellSize;
 	return FVector(CenterX, CenterY, GridOrigin.Z);
 }
 
@@ -95,6 +97,24 @@ bool UTDGridManager::IsHoleCell(int32 Col, int32 Row) const
 {
 	if (!IsValidCell(Col, Row)) return false;
 	return Cells[GetIndex(Col, Row)].TileType == ETileType::HOLE;
+}
+
+bool UTDGridManager::IsDeployable(int32 Col, int32 Row) const
+{
+	if (!IsValidCell(Col, Row)) return false;
+	return Cells[GetIndex(Col, Row)].bDeployable;
+}
+
+bool UTDGridManager::IsOccupied(int32 Col, int32 Row) const
+{
+	if (!IsValidCell(Col, Row)) return false;
+	return Cells[GetIndex(Col, Row)].bOccupied;
+}
+
+ETileType UTDGridManager::GetTileType(int32 Col, int32 Row) const
+{
+	if (!IsValidCell(Col, Row)) return ETileType::GROUND;
+	return Cells[GetIndex(Col, Row)].TileType;
 }
 
 FBox2D UTDGridManager::GetHoleDeathBox(int32 Col, int32 Row) const

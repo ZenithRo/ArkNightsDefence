@@ -68,6 +68,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Tower")
 	TArray<int32> GetDescendingSortedHandCardIndices() const;
 
+	// 拖拽放置 (从WBP_HandCard的Button OnPressed/OnReleased调用)
+	UFUNCTION(BlueprintCallable, Category = "Tower")
+	void BeginPlacement(int32 Index);
+
+	UFUNCTION(BlueprintCallable, Category = "Tower")
+	void EndPlacement();
+
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Tower")
 	TSubclassOf<ATDDeploymentPreviewActor> PreviewActorClass;
@@ -77,6 +84,10 @@ protected:
 private:
 	void UpdatePreview();
 
+	void ExecutePendingDeploy();
+
+	bool GetCursorPlaneLocation(FVector& OutPlanePos) const;
+
 	EDeployDirection GetDirectionFromMouse(FVector GridWorldCenter, FVector MouseWorldPos) const;
 
 	TObjectPtr<ATDDeploymentPreviewActor> PreviewActor;
@@ -85,4 +96,6 @@ private:
 	int32 HoveredRow = -1;
 	EDeployDirection HoveredDirection = EDeployDirection::RIGHT;
 	bool bHasValidHover = false;
+	bool bIsDragging = false;
+	int32 PendingDeployCountdown = -1;
 };

@@ -49,6 +49,14 @@ public:
 
 	FVector GridToWorld(int32 Col, int32 Row) const;
 
+	FVector GetGridOrigin() const { return GridOrigin; }
+	float GetCellSize() const { return CellSize; }
+	int32 GetNumCols() const { return NumCols; }
+	int32 GetNumRows() const { return NumRows; }
+	bool IsDeployable(int32 Col, int32 Row) const;
+	bool IsOccupied(int32 Col, int32 Row) const;
+	ETileType GetTileType(int32 Col, int32 Row) const;
+
 	bool IsValidCell(int32 Col, int32 Row) const;
 
 	bool CanDeployAt(int32 Col, int32 Row) const;

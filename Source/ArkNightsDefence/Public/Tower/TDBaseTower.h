@@ -70,7 +70,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USpineSkeletonAnimationComponent> SpineAnim;
 
-	// 后背视角Spine骨骼数据(朝上时使用, 由蓝图子类设置)
+// 后背视角Spine骨骼数据(朝上时使用, 由蓝图子类设置)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Spine")
 	TObjectPtr<USpineSkeletonDataAsset> SkeletonDataAssetBack;
 

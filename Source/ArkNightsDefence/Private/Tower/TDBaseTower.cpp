@@ -125,6 +125,9 @@ void ATDBaseTower::BeginPlay()
 	if (SpineAnim && SkeletonDataAsset)
 	{
 		SpineAnim->SkeletonData = SkeletonDataAsset;
+	}
+	if (SpineAnim && SpineAnim->SkeletonData)
+	{
 		SpineAnim->AnimationComplete.AddDynamic(this, &ATDBaseTower::OnAnimComplete);
 		// 先调用一次SetAnimation确保内部AnimationState已创建
 		SpineAnim->SetAnimation(0, TEXT("Start"), false);

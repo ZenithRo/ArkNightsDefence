@@ -78,7 +78,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USpineSkeletonAnimationComponent> SpineAnim;
 
-// 后背视角Spine骨骼数据(朝上时使用, 由蓝图子类设置)
+	// 后背视角Spine骨骼数据(朝上时使用, 由蓝图子类设置)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Spine")
 	TObjectPtr<USpineSkeletonDataAsset> SkeletonDataAssetBack;
 
@@ -150,7 +150,7 @@ public:
 
 	// 部署方向
 	UPROPERTY(BlueprintReadOnly, Category = "Tower")
-	EDeployDirection DeployDirection = EDeployDirection::RIGHT;
+	EDeployDirection DeployDirection = EDeployDirection::LEFT;
 
 	// 部署类型(地面/高台/均可)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Tower")
@@ -159,6 +159,14 @@ public:
 	// 攻击目标类型(地面/飞行/均可)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Combat")
 	EAttackTargetType AttackTargetType = EAttackTargetType::Land;
+
+	// 是否为医疗塔(治疗友方塔)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Combat")
+	bool bIsMedic = false;
+
+	// 医疗塔: 每次治疗量
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Combat", meta = (EditCondition = "bIsMedic"))
+	float HealAmount = 30.0f;
 
 	// 攻击模式: 单体(默认) / 群体
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Tower|Combat")
@@ -185,6 +193,10 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Tower")
 	TObjectPtr<ATDEnemy> CurrentTarget;
+
+	// 医疗塔当前治疗目标
+	UPROPERTY(BlueprintReadOnly, Category = "Tower")
+	TObjectPtr<ATDBaseTower> HealTarget;
 
 	UFUNCTION(BlueprintCallable, Category = "Tower")
 	void FindTarget();
@@ -231,4 +243,5 @@ private:
 	void ApplyLevelUpStats();
 
 	bool IsEnemyInRangeCells(ATDEnemy* Enemy) const;
+	bool IsTowerInRangeCells(ATDBaseTower* Ally) const;
 };

@@ -46,8 +46,8 @@ ATDBaseTower::ATDBaseTower()
 	// 默认攻击范围为近战1格(自身格子)
 	AttackRangeCells.Add(FAttackRangeCell{0, 0});
 
-	// 默认朝右(Scale.Y为正)
-	SetActorScale3D(FVector(1.0f, 1.0f, 1.0f));
+	// 默认朝左(Spine原始朝右, Scale.Y=-1做左右镜像)
+	SetActorScale3D(FVector(1.0f, -1.0f, 1.0f));
 }
 
 void ATDBaseTower::SetGridCoordinate(int32 Col, int32 Row)
@@ -59,25 +59,6 @@ void ATDBaseTower::SetGridCoordinate(int32 Col, int32 Row)
 void ATDBaseTower::SetDeployDirection(EDeployDirection NewDir)
 {
 	DeployDirection = NewDir;
-
-	switch (NewDir)
-	{
-	case EDeployDirection::RIGHT:
-		SetActorScale3D(FVector(1.0f, 1.0f, 1.0f));
-		break;
-
-	case EDeployDirection::LEFT:
-		SetActorScale3D(FVector(1.0f, -1.0f, 1.0f));
-		break;
-
-	case EDeployDirection::UP:
-		SetActorScale3D(FVector(1.0f, 1.0f, 1.0f));
-		break;
-
-	case EDeployDirection::DOWN:
-		SetActorScale3D(FVector(1.0f, -1.0f, 1.0f));
-		break;
-	}
 }
 
 int32 ATDBaseTower::GetCurrentBlockCount() const
@@ -158,7 +139,6 @@ void ATDBaseTower::BeginPlay()
 		{
 			SpineAnim->GetAnimationState()->getData()->setDefaultMix(0.0f);
 		}
-		// 状态机重置为Starting
 		AnimState = ETowerAnimState::Starting;
 	}
 	else if (SpineAnim)
@@ -204,16 +184,58 @@ void ATDBaseTower::Tick(float DeltaTime)
 		}
 	}
 
-	if (!CurrentTarget || CurrentTarget->CurrentHealth <= 0.0f ||
-		!CanTargetEnemy(CurrentTarget) ||
-		!IsEnemyInRangeCells(CurrentTarget) ||
-		(AttackRangeMode == EAttackRangeMode::Circle &&
-		 FVector::Dist(GetActorLocation(), CurrentTarget->GetActorLocation()) > AttackRange))
+	if (!bIsMedic)
 	{
-		FindTarget();
+		if (!CurrentTarget || CurrentTarget->CurrentHealth <= 0.0f ||
+			!CanTargetEnemy(CurrentTarget) ||
+			!IsEnemyInRangeCells(CurrentTarget) ||
+			(AttackRangeMode == EAttackRangeMode::Circle &&
+			 FVector::Dist(GetActorLocation(), CurrentTarget->GetActorLocation()) > AttackRange))
+		{
+			FindTarget();
+		}
+	}
+	else
+	{
+		if (!HealTarget || HealTarget->bIsDead || HealTarget->CurrentHealth >= HealTarget->MaxHealth ||
+			!IsTowerInRangeCells(HealTarget))
+		{
+			HealTarget = nullptr;
+		}
 	}
 
-	if (CurrentTarget)
+	// 根据目标位置动态调整Spine朝向
+	{
+		float TargetScaleY = -1.0f;
+
+		FVector TargetLoc = HealTarget ? HealTarget->GetActorLocation() :
+			(CurrentTarget ? CurrentTarget->GetActorLocation() : FVector::ZeroVector);
+
+		if (CurrentTarget || HealTarget)
+		{
+			ATDGameMode* GM = Cast<ATDGameMode>(GetWorld()->GetAuthGameMode());
+			if (GM && GM->GridManager)
+			{
+				float CellSize = GM->GridManager->GetCellSize();
+				FVector ToTarget = TargetLoc - GetActorLocation();
+
+				if (ToTarget.Y > CellSize * 0.5f)
+				{
+					TargetScaleY = 1.0f;
+				}
+			}
+		}
+
+		FVector CurrentScale = GetActorScale3D();
+		if (!FMath::IsNearlyEqual(CurrentScale.Y, TargetScaleY))
+		{
+			SetActorScale3D(FVector(1.0f, TargetScaleY, 1.0f));
+		}
+	}
+
+	AActor* AnimTarget = bIsMedic ? Cast<AActor>(HealTarget) : Cast<AActor>(CurrentTarget);
+
+	if (AnimTarget)
 	{
 		if (AnimState == ETowerAnimState::Idle)
 		{
@@ -257,6 +279,13 @@ void ATDBaseTower::PlayAnim(const FString& AnimName, bool Loop)
 	if (SpineAnim && SpineAnim->HasAnimation(AnimName))
 	{
 		SpineAnim->SetAnimation(0, AnimName, Loop);
+		if (spine::AnimationState* State = SpineAnim->GetAnimationState())
+		{
+			if (spine::TrackEntry* Entry = State->getCurrent(0))
+			{
+				Entry->timeScale = 1.0f / AttackInterval;
+			}
+		}
 	}
 }
 
@@ -345,18 +374,49 @@ bool ATDBaseTower::IsEnemyInRangeCells(ATDEnemy* Enemy) const
 	int32 RelCol = EnemyCol - GridCol;
 	int32 RelRow = EnemyRow - GridRow;
 
-	int32 RotCol = RelCol, RotRow = RelRow;
-	switch (DeployDirection)
+	for (const FAttackRangeCell& Cell : AttackRangeCells)
 	{
-	case EDeployDirection::RIGHT:	RotRow = -RelRow; break;
-	case EDeployDirection::LEFT:	break;
-	case EDeployDirection::UP:		RotCol = -RelRow; RotRow = RelCol; break;
-	case EDeployDirection::DOWN:	RotCol = RelRow; RotRow = -RelCol; break;
+		if (Cell.DeltaX == RelCol && Cell.DeltaY == RelRow)
+		{
+			return true;
+		}
 	}
+
+	return false;
+}
+
+bool ATDBaseTower::IsTowerInRangeCells(ATDBaseTower* Ally) const
+{
+	if (!Ally || GridCol < 0 || GridRow < 0)
+	{
+		return true;
+	}
+
+	if (AttackRangeMode == EAttackRangeMode::Circle)
+	{
+		return true;
+	}
+
+	if (AttackRangeCells.Num() == 0)
+	{
+		return true;
+	}
+
+	ATDGameMode* GM = Cast<ATDGameMode>(GetWorld()->GetAuthGameMode());
+	if (!GM || !GM->GridManager) return true;
+
+	int32 AllyCol, AllyRow;
+	if (!GM->GridManager->WorldToGrid(Ally->GetActorLocation(), AllyCol, AllyRow))
+	{
+		return false;
+	}
+
+	int32 RelCol = AllyCol - GridCol;
+	int32 RelRow = AllyRow - GridRow;
 
 	for (const FAttackRangeCell& Cell : AttackRangeCells)
 	{
-		if (Cell.DeltaX == RotCol && Cell.DeltaY == RotRow)
+		if (Cell.DeltaX == RelCol && Cell.DeltaY == RelRow)
 		{
 			return true;
 		}
@@ -386,6 +446,41 @@ void ATDBaseTower::FindTarget()
 
 	UWorld* World = GetWorld();
 	if (!World || bIsDead) return;
+
+	if (bIsMedic)
+	{
+		// 医疗塔: 找范围内血量百分比最低的友方塔
+		ATDBaseTower* BestAlly = nullptr;
+		float LowestHealthPct = 1.0f;
+
+		for (TActorIterator<ATDBaseTower> It(World); It; ++It)
+		{
+			ATDBaseTower* Ally = *It;
+			if (!Ally || Ally == this || Ally->bIsDead) continue;
+			if (Ally->CurrentHealth >= Ally->MaxHealth) continue;
+
+			bool bInRange = false;
+			if (AttackRangeMode == EAttackRangeMode::Circle)
+			{
+				bInRange = FVector::Dist(GetActorLocation(), Ally->GetActorLocation()) <= AttackRange;
+			}
+			else
+			{
+				bInRange = IsTowerInRangeCells(Ally);
+			}
+			if (!bInRange) continue;
+
+			float HealthPct = Ally->CurrentHealth / Ally->MaxHealth;
+			if (HealthPct < LowestHealthPct)
+			{
+				LowestHealthPct = HealthPct;
+				BestAlly = Ally;
+			}
+		}
+
+		CurrentTarget = nullptr;
+		return;
+	}
 
 	TArray<ATDEnemy*> Candidates;
 
@@ -428,6 +523,64 @@ void ATDBaseTower::Fire()
 {
 	UWorld* World = GetWorld();
 	if (!World || bIsDead) return;
+
+	if (bIsMedic)
+	{
+		HealTarget = nullptr;
+
+		if (AttackMode == ETowerAttackMode::SingleTarget)
+		{
+			ATDBaseTower* BestAlly = nullptr;
+			float LowestHealthPct = 1.0f;
+
+			for (TActorIterator<ATDBaseTower> It(World); It; ++It)
+			{
+				ATDBaseTower* Ally = *It;
+				if (!Ally || Ally == this || Ally->bIsDead) continue;
+				if (Ally->CurrentHealth >= Ally->MaxHealth) continue;
+
+				bool bInRange = (AttackRangeMode == EAttackRangeMode::Circle)
+					? FVector::Dist(GetActorLocation(), Ally->GetActorLocation()) <= AttackRange
+					: IsTowerInRangeCells(Ally);
+				if (!bInRange) continue;
+
+				float HealthPct = Ally->CurrentHealth / Ally->MaxHealth;
+				if (HealthPct < LowestHealthPct)
+				{
+					LowestHealthPct = HealthPct;
+					BestAlly = Ally;
+				}
+			}
+
+			if (BestAlly)
+			{
+				HealTarget = BestAlly;
+				BestAlly->CurrentHealth = FMath::Min(BestAlly->MaxHealth, BestAlly->CurrentHealth + HealAmount);
+			}
+		}
+		else
+		{
+			for (TActorIterator<ATDBaseTower> It(World); It; ++It)
+			{
+				ATDBaseTower* Ally = *It;
+				if (!Ally || Ally == this || Ally->bIsDead) continue;
+				if (Ally->CurrentHealth >= Ally->MaxHealth) continue;
+
+				bool bInRange = (AttackRangeMode == EAttackRangeMode::Circle)
+					? FVector::Dist(GetActorLocation(), Ally->GetActorLocation()) <= AttackRange
+					: IsTowerInRangeCells(Ally);
+				if (!bInRange) continue;
+
+				if (!HealTarget)
+				{
+					HealTarget = Ally;
+				}
+
+				Ally->CurrentHealth = FMath::Min(Ally->MaxHealth, Ally->CurrentHealth + HealAmount);
+			}
+		}
+		return;
+	}
 
 	TArray<ATDEnemy*> Targets;
 

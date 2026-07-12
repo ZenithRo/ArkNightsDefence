@@ -152,6 +152,9 @@ public:
 
 	void ApplyDamageToSelf(float InPhysical, float InMagic);
 
+	// 伤害计算(支持无视防御百分比: 0-100)
+	void ApplyDamageToSelfWithPenetration(float InPhysical, float InMagic, float IgnorePhysPct, float IgnoreMagicPct);
+
 	// 阻挡系统
 	bool bIsBlocked = false;
 	TWeakObjectPtr<ATDBaseTower> BlockedByTower;
@@ -159,9 +162,20 @@ public:
 	void OnBlocked(ATDBaseTower* Blocker);
 	void OnUnblocked();
 
+	// 减速系统
+	UFUNCTION(BlueprintCallable, Category = "Enemy")
+	void ApplySlow(float SlowPercent, float Duration);
+
+	UFUNCTION(BlueprintCallable, Category = "Enemy")
+	void RemoveSlow();
+
+	UPROPERTY(BlueprintReadOnly, Category = "Enemy")
+	float CurrentMoveSpeedMultiplier = 1.0f;
+
 private:
 	TObjectPtr<USplineComponent> CachedSpline;
 	FTimerHandle AttackTimerHandle;
+	FTimerHandle SlowTimerHandle;
 	bool bIsDead = false;
 
 	void PlayAnim(const FString& AnimName, bool Loop);

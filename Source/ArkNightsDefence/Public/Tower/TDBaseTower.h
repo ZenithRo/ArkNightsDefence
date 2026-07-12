@@ -31,6 +31,13 @@ enum class ETowerAnimState : uint8
 };
 
 UENUM(BlueprintType)
+enum class ETowerAttackMode : uint8
+{
+	SingleTarget	UMETA(DisplayName = "单体攻击"),
+	AoE				UMETA(DisplayName = "群体攻击")
+};
+
+UENUM(BlueprintType)
 enum class ETowerClass : uint8
 {
 	Vanguard    UMETA(DisplayName = "Vanguard"),
@@ -122,7 +129,7 @@ public:
 
 	// 每一级的完整属性(Index 0 = Lv1默认, 1 = Lv2, 2 = Lv3)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Tower|Upgrade")
-	TArray<struct FTowerLevelStats> LevelStats;
+	TArray<FTowerLevelStats> LevelStats;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Upgrade")
 	int32 UpgradeCost_Lv2 = 50;
@@ -152,6 +159,26 @@ public:
 	// 攻击目标类型(地面/飞行/均可)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Combat")
 	EAttackTargetType AttackTargetType = EAttackTargetType::Land;
+
+	// 攻击模式: 单体(默认) / 群体
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Tower|Combat")
+	ETowerAttackMode AttackMode = ETowerAttackMode::SingleTarget;
+
+	// 减速百分比(0=不减速, 50=减速50%)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Combat")
+	float SlowPercentage = 0.0f;
+
+	// 减速持续秒数
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Combat")
+	float SlowDuration = 2.0f;
+
+	// 无视物理防御百分比(0=不无视, 50=无视50%, 100=无视全部)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Combat")
+	float IgnorePhysicalArmorPercent = 0.0f;
+
+	// 无视法术防御百分比
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Combat")
+	float IgnoreMagicResistancePercent = 0.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Tower|Attack")
 	EAttackRangeMode AttackRangeMode = EAttackRangeMode::Circle;

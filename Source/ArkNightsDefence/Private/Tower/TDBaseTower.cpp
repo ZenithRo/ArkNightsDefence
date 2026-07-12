@@ -195,7 +195,6 @@ void ATDBaseTower::Tick(float DeltaTime)
 
 	if (bIsDead) return;
 
-	// 更新血条
 	if (HealthBarComp)
 	{
 		UTDHealthBarWidget* HBWidget = Cast<UTDHealthBarWidget>(HealthBarComp->GetWidget());
@@ -206,6 +205,7 @@ void ATDBaseTower::Tick(float DeltaTime)
 	}
 
 	if (!CurrentTarget || CurrentTarget->CurrentHealth <= 0.0f ||
+		!CanTargetEnemy(CurrentTarget) ||
 		!IsEnemyInRangeCells(CurrentTarget) ||
 		(AttackRangeMode == EAttackRangeMode::Circle &&
 		 FVector::Dist(GetActorLocation(), CurrentTarget->GetActorLocation()) > AttackRange))
@@ -217,16 +217,37 @@ void ATDBaseTower::Tick(float DeltaTime)
 	{
 		if (AnimState == ETowerAnimState::Idle)
 		{
-			PlayAnim(TEXT("Attack_Start"), false);
-			AnimState = ETowerAnimState::AttackStarting;
+			if (SpineAnim && SpineAnim->HasAnimation(TEXT("Attack_Start")))
+			{
+				PlayAnim(TEXT("Attack_Start"), false);
+				AnimState = ETowerAnimState::AttackStarting;
+			}
+			else if (SpineAnim && SpineAnim->HasAnimation(TEXT("Attack_Loop")))
+			{
+				PlayAnim(TEXT("Attack_Loop"), true);
+				AnimState = ETowerAnimState::Attacking;
+			}
+			else
+			{
+				PlayAnim(TEXT("Attack"), false);
+				AnimState = ETowerAnimState::Attacking;
+			}
 		}
 	}
 	else
 	{
 		if (AnimState == ETowerAnimState::Attacking || AnimState == ETowerAnimState::AttackStarting)
 		{
-			PlayAnim(TEXT("Attack_End"), false);
-			AnimState = ETowerAnimState::AttackEnding;
+			if (SpineAnim && SpineAnim->HasAnimation(TEXT("Attack_End")))
+			{
+				PlayAnim(TEXT("Attack_End"), false);
+				AnimState = ETowerAnimState::AttackEnding;
+			}
+			else
+			{
+				PlayAnim(TEXT("Idle"), true);
+				AnimState = ETowerAnimState::Idle;
+			}
 		}
 	}
 }
@@ -249,8 +270,38 @@ void ATDBaseTower::OnAnimComplete(UTrackEntry* Entry)
 		break;
 
 	case ETowerAnimState::AttackStarting:
-		PlayAnim(TEXT("Attack_Loop"), true);
-		AnimState = ETowerAnimState::Attacking;
+		if (SpineAnim && SpineAnim->HasAnimation(TEXT("Attack_Loop")))
+		{
+			PlayAnim(TEXT("Attack_Loop"), true);
+			AnimState = ETowerAnimState::Attacking;
+		}
+		else
+		{
+			PlayAnim(TEXT("Idle"), true);
+			AnimState = ETowerAnimState::Idle;
+		}
+		break;
+
+	case ETowerAnimState::Attacking:
+		// Attack(单次) 播完或 Attack_Loop 播完 → 重新检查目标
+		if (CurrentTarget && CurrentTarget->CurrentHealth > 0.0f &&
+			CanTargetEnemy(CurrentTarget) && IsEnemyInRangeCells(CurrentTarget))
+		{
+			if (SpineAnim && SpineAnim->HasAnimation(TEXT("Attack_Loop")))
+			{
+				PlayAnim(TEXT("Attack_Loop"), true);
+			}
+			else
+			{
+				PlayAnim(TEXT("Attack"), false);
+			}
+			AnimState = ETowerAnimState::Attacking;
+		}
+		else
+		{
+			PlayAnim(TEXT("Idle"), true);
+			AnimState = ETowerAnimState::Idle;
+		}
 		break;
 
 	case ETowerAnimState::AttackEnding:
@@ -288,7 +339,7 @@ bool ATDBaseTower::IsEnemyInRangeCells(ATDEnemy* Enemy) const
 	int32 EnemyCol, EnemyRow;
 	if (!GM->GridManager->WorldToGrid(Enemy->GetActorLocation(), EnemyCol, EnemyRow))
 	{
-		return true;
+		return false;
 	}
 
 	int32 RelCol = EnemyCol - GridCol;
@@ -314,6 +365,21 @@ bool ATDBaseTower::IsEnemyInRangeCells(ATDEnemy* Enemy) const
 	return false;
 }
 
+bool ATDBaseTower::CanTargetEnemy(const ATDEnemy* Enemy) const
+{
+	if (!Enemy) return false;
+	switch (AttackTargetType)
+	{
+	case EAttackTargetType::Land:
+		return Enemy->EnemyType == EEnemyType::Land;
+	case EAttackTargetType::Fly:
+		return Enemy->EnemyType == EEnemyType::Fly;
+	case EAttackTargetType::Both:
+		return true;
+	}
+	return true;
+}
+
 void ATDBaseTower::FindTarget()
 {
 	CurrentTarget = nullptr;
@@ -321,13 +387,13 @@ void ATDBaseTower::FindTarget()
 	UWorld* World = GetWorld();
 	if (!World || bIsDead) return;
 
-	// 收集攻击范围内所有敌人
 	TArray<ATDEnemy*> Candidates;
 
 	for (TActorIterator<ATDEnemy> It(World); It; ++It)
 	{
 		ATDEnemy* Enemy = *It;
 		if (!Enemy || Enemy->CurrentHealth <= 0.0f) continue;
+		if (!CanTargetEnemy(Enemy)) continue;
 		if (!IsEnemyInRangeCells(Enemy)) continue;
 
 		if (AttackRangeMode == EAttackRangeMode::Circle)
@@ -341,42 +407,75 @@ void ATDBaseTower::FindTarget()
 
 	if (Candidates.Num() == 0) return;
 
-	if (TargetSelector)
+	// 单体: 选路径上走的最远的敌人
+	// 群体: 也选最远的作为动画/方向参考
+	ATDEnemy* FurthestEnemy = nullptr;
+	float MaxDistance = -1.0f;
+
+	for (ATDEnemy* Enemy : Candidates)
 	{
-		TArray<ATDEnemy*> Selected = TargetSelector->SelectTargets(Candidates, this);
-		if (Selected.Num() > 0)
+		if (Enemy->DistanceAlongSpline > MaxDistance)
 		{
-			CurrentTarget = Selected[0];
+			MaxDistance = Enemy->DistanceAlongSpline;
+			FurthestEnemy = Enemy;
 		}
 	}
-	else
-	{
-		ATDEnemy* ClosestEnemy = nullptr;
-		float MinDist = FLT_MAX;
 
-		for (ATDEnemy* Enemy : Candidates)
-		{
-			float Dist = FVector::Dist(GetActorLocation(), Enemy->GetActorLocation());
-			if (Dist < MinDist)
-			{
-				MinDist = Dist;
-				ClosestEnemy = Enemy;
-			}
-		}
-
-		CurrentTarget = ClosestEnemy;
-	}
+	CurrentTarget = FurthestEnemy;
 }
 
 void ATDBaseTower::Fire()
 {
-	if (!CurrentTarget || CurrentTarget->CurrentHealth <= 0.0f)
+	UWorld* World = GetWorld();
+	if (!World || bIsDead) return;
+
+	TArray<ATDEnemy*> Targets;
+
+	if (AttackMode == ETowerAttackMode::AoE)
 	{
-		FindTarget();
-		if (!CurrentTarget) return;
+		// 群体攻击: 对所有攻击范围内的敌人造成伤害
+		for (TActorIterator<ATDEnemy> It(World); It; ++It)
+		{
+			ATDEnemy* Enemy = *It;
+			if (!Enemy || Enemy->CurrentHealth <= 0.0f) continue;
+			if (!CanTargetEnemy(Enemy)) continue;
+			if (!IsEnemyInRangeCells(Enemy)) continue;
+
+			if (AttackRangeMode == EAttackRangeMode::Circle)
+			{
+				float Dist = FVector::Dist(GetActorLocation(), Enemy->GetActorLocation());
+				if (Dist > AttackRange) continue;
+			}
+
+			Targets.Add(Enemy);
+		}
+	}
+	else
+	{
+		// 单体攻击: 只攻击当前目标
+		if (!CurrentTarget || CurrentTarget->CurrentHealth <= 0.0f ||
+			!CanTargetEnemy(CurrentTarget) ||
+			!IsEnemyInRangeCells(CurrentTarget) ||
+			(AttackRangeMode == EAttackRangeMode::Circle &&
+			 FVector::Dist(GetActorLocation(), CurrentTarget->GetActorLocation()) > AttackRange))
+		{
+			FindTarget();
+		}
+		if (CurrentTarget)
+		{
+			Targets.Add(CurrentTarget);
+		}
 	}
 
-	CurrentTarget->ApplyDamage(PhysicalDamage, MagicDamage);
+	for (ATDEnemy* Target : Targets)
+	{
+		Target->ApplyDamageToSelfWithPenetration(PhysicalDamage, MagicDamage, IgnorePhysicalArmorPercent, IgnoreMagicResistancePercent);
+
+		if (SlowPercentage > 0.0f)
+		{
+			Target->ApplySlow(SlowPercentage, SlowDuration);
+		}
+	}
 }
 
 float ATDBaseTower::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)

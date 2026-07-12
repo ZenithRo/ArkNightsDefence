@@ -144,10 +144,13 @@ void ATDEnemy::Tick(float DeltaTime)
 	if (CurrentTargetTower && !CurrentTargetTower->bIsDead &&
 		FVector::Dist(GetActorLocation(), CurrentTargetTower->GetActorLocation()) <= MeleeRange)
 	{
-		// 未被阻挡且塔有阻挡空位 → 触发阻挡
-		if (!bIsBlocked && CurrentTargetTower->GetCurrentBlockCount() < CurrentTargetTower->MaxBlockCount)
+		// 飞行敌人不触发阻挡
+		if (EnemyType != EEnemyType::Fly)
 		{
-			OnBlocked(CurrentTargetTower);
+			if (!bIsBlocked && CurrentTargetTower->GetCurrentBlockCount() < CurrentTargetTower->MaxBlockCount)
+			{
+				OnBlocked(CurrentTargetTower);
+			}
 		}
 
 		if (bIsBlocked)
@@ -195,7 +198,8 @@ void ATDEnemy::Tick(float DeltaTime)
 	{
 		if (!CachedSpline) return;
 
-		DistanceAlongSpline += MoveSpeed * DeltaTime;
+		float EffectiveSpeed = MoveSpeed * CurrentMoveSpeedMultiplier;
+		DistanceAlongSpline += EffectiveSpeed * DeltaTime;
 
 		float SplineLength = CachedSpline->GetSplineLength();
 		FVector NewLocation = CachedSpline->GetLocationAtDistanceAlongSpline(DistanceAlongSpline, ESplineCoordinateSpace::World);
@@ -276,6 +280,24 @@ void ATDEnemy::ApplyDamageToSelf(float InPhysical, float InMagic)
 
 	float PhysDamage = FMath::Max(1.0f, InPhysical - PhysicalArmor);
 	float MagDamage = FMath::Max(1.0f, InMagic * (1.0f - MagicResistance / 100.0f));
+
+	CurrentHealth -= (PhysDamage + MagDamage);
+
+	if (CurrentHealth <= 0.0f)
+	{
+		Die();
+	}
+}
+
+void ATDEnemy::ApplyDamageToSelfWithPenetration(float InPhysical, float InMagic, float IgnorePhysPct, float IgnoreMagicPct)
+{
+	if (bIsDead) return;
+
+	float EffectivePhysArmor = PhysicalArmor * (1.0f - FMath::Clamp(IgnorePhysPct / 100.0f, 0.0f, 1.0f));
+	float EffectiveMagicResist = MagicResistance * (1.0f - FMath::Clamp(IgnoreMagicPct / 100.0f, 0.0f, 1.0f));
+
+	float PhysDamage = FMath::Max(1.0f, InPhysical - EffectivePhysArmor);
+	float MagDamage = FMath::Max(1.0f, InMagic * (1.0f - EffectiveMagicResist / 100.0f));
 
 	CurrentHealth -= (PhysDamage + MagDamage);
 
@@ -375,6 +397,21 @@ void ATDEnemy::OnUnblocked()
 void ATDEnemy::ApplyDamage(float InPhysical, float InMagic)
 {
 	ApplyDamageToSelf(InPhysical, InMagic);
+}
+
+void ATDEnemy::ApplySlow(float SlowPercent, float Duration)
+{
+	if (bIsDead) return;
+	CurrentMoveSpeedMultiplier = 1.0f - FMath::Clamp(SlowPercent / 100.0f, 0.0f, 1.0f);
+
+	GetWorldTimerManager().ClearTimer(SlowTimerHandle);
+	GetWorldTimerManager().SetTimer(SlowTimerHandle, this, &ATDEnemy::RemoveSlow, Duration, false);
+}
+
+void ATDEnemy::RemoveSlow()
+{
+	CurrentMoveSpeedMultiplier = 1.0f;
+	GetWorldTimerManager().ClearTimer(SlowTimerHandle);
 }
 
 void ATDEnemy::Die()

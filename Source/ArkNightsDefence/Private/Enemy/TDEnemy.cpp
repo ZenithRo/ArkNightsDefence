@@ -235,6 +235,13 @@ void ATDEnemy::PlayAnim(const FString& AnimName, bool Loop)
 	if (SpineAnim && SpineAnim->HasAnimation(AnimName))
 	{
 		SpineAnim->SetAnimation(0, AnimName, Loop);
+		if (spine::AnimationState* State = SpineAnim->GetAnimationState())
+		{
+			if (spine::TrackEntry* Entry = State->getCurrent(0))
+			{
+				Entry->timeScale = 1.0f / AttackInterval;
+			}
+		}
 	}
 }
 

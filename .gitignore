@@ -8,6 +8,10 @@ Intermediate/
 DerivedDataCache/
 Saved/
 
+# UE5 packaged build output (publish through Releases or external storage)
+/Windows/
+/Build/Windows/FileOpenOrder/
+
 # Project
 *.sln.DotSettings.user
 UpgradeLog.htm

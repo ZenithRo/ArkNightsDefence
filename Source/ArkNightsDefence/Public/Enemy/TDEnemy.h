@@ -187,6 +187,7 @@ private:
 	bool bIsDead = false;
 
 	void PlayAnim(const FString& AnimName, bool Loop);
+	FString ResolveMoveAnim(const FString& MoveType) const;
 
 	UFUNCTION()
 	void OnAnimComplete(UTrackEntry* Entry);

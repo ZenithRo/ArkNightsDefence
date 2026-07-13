@@ -259,9 +259,14 @@ void ATDEnemy::Tick(float DeltaTime)
 
 void ATDEnemy::PlayAnim(const FString& AnimName, bool Loop)
 {
-	if (SpineAnim && SpineAnim->HasAnimation(AnimName))
+	FString ActualName = AnimName;
+	if (AnimName == TEXT("Move_Begin") || AnimName == TEXT("Move_Loop") || AnimName == TEXT("Move_End"))
 	{
-		SpineAnim->SetAnimation(0, AnimName, Loop);
+		ActualName = ResolveMoveAnim(AnimName.RightChop(5));
+	}
+	if (SpineAnim && SpineAnim->HasAnimation(ActualName))
+	{
+		SpineAnim->SetAnimation(0, ActualName, Loop);
 		if (spine::AnimationState* State = SpineAnim->GetAnimationState())
 		{
 			if (spine::TrackEntry* Entry = State->getCurrent(0))
@@ -270,6 +275,44 @@ void ATDEnemy::PlayAnim(const FString& AnimName, bool Loop)
 			}
 		}
 	}
+}
+
+FString ATDEnemy::ResolveMoveAnim(const FString& MoveType) const
+{
+	FString MoveName = FString::Printf(TEXT("Move_%s"), *MoveType);
+	if (SpineAnim && SpineAnim->HasAnimation(MoveName))
+	{
+		if (MoveType == TEXT("Loop") && MoveSpeed > 300.0f && SpineAnim->HasAnimation(TEXT("Run_Loop")))
+		{
+			return TEXT("Run_Loop");
+		}
+		return MoveName;
+	}
+
+	FString RunName = FString::Printf(TEXT("Run_%s"), *MoveType);
+	if (SpineAnim && SpineAnim->HasAnimation(RunName))
+	{
+		return RunName;
+	}
+
+	if (MoveType == TEXT("Begin") || MoveType == TEXT("End"))
+	{
+		if (CachedSpline)
+		{
+			FVector Tangent = CachedSpline->GetDirectionAtDistanceAlongSpline(DistanceAlongSpline, ESplineCoordinateSpace::World);
+			if (Tangent.X > KINDA_SMALL_NUMBER)
+			{
+				return TEXT("Move_Up");
+			}
+			else if (Tangent.X < -KINDA_SMALL_NUMBER)
+			{
+				return TEXT("Move_Down");
+			}
+		}
+		return TEXT("Move_Loop");
+	}
+
+	return TEXT("Idle");
 }
 
 void ATDEnemy::OnAnimComplete(UTrackEntry* Entry)
@@ -540,6 +583,13 @@ void ATDEnemy::Die()
 
 void ATDEnemy::OnReachedEnd()
 {
+	if (bIsBlocked && BlockedByTower.IsValid())
+	{
+		BlockedByTower->RemoveBlockedEnemy(this);
+	}
+	bIsBlocked = false;
+	BlockedByTower = nullptr;
+
 	ATDGameMode* GM = Cast<ATDGameMode>(GetWorld()->GetAuthGameMode());
 	if (GM)
 	{

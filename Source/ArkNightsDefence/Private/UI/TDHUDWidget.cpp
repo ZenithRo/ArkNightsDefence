@@ -36,3 +36,18 @@ void UTDHUDWidget::OnPauseButtonClicked()
 		PC->OnPauseToggle();
 	}
 }
+
+void UTDHUDWidget::OnUpgradeButtonClicked()
+{
+	ATDPlayerController* PC = Cast<ATDPlayerController>(GetOwningPlayer());
+	if (!PC) return;
+
+	if (PC->IsInUpgradeMode())
+	{
+		PC->ExitUpgradeMode();
+	}
+	else
+	{
+		PC->EnterUpgradeMode();
+	}
+}

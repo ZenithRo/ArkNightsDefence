@@ -65,6 +65,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Tower")
 	void RefreshHandCards();
 
+	// 升级模式
+	UFUNCTION(BlueprintCallable, Category = "Upgrade")
+	void EnterUpgradeMode();
+
+	UFUNCTION(BlueprintCallable, Category = "Upgrade")
+	void ExitUpgradeMode();
+
+	// 返回: 0=成功, 1=已达最高等级, -1=经验不足
+	UFUNCTION(BlueprintCallable, Category = "Upgrade")
+	int32 TryUpgradeHandCard(int32 Index);
+
+	UFUNCTION(BlueprintPure, Category = "Upgrade")
+	bool IsInUpgradeMode() const { return bInUpgradeMode; }
+
 	void OnClick(const FInputActionValue& Value);
 
 	UFUNCTION()
@@ -96,4 +110,7 @@ private:
 	// 暂停/倍速
 	float PreviousTimeDilation = 1.0f;
 	bool bIsPaused = false;
+
+	// 手牌升级模式
+	bool bInUpgradeMode = false;
 };

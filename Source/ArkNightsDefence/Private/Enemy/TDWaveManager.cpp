@@ -101,15 +101,27 @@ void ATDWaveManager::SpawnNextFromState()
 	{
 		if (State.Remaining > 0)
 		{
-			State.Remaining--;
-
-			if (!State.EnemyClass || !PathActors.IsValidIndex(State.PathIndex)) return;
+			if (!State.EnemyClass || !PathActors.IsValidIndex(State.PathIndex))
+			{
+				State.Remaining = 0;
+				continue;
+			}
 
 			AActor* PathActor = PathActors[State.PathIndex];
-			if (!PathActor) return;
+			if (!PathActor)
+			{
+				State.Remaining = 0;
+				continue;
+			}
 
 			USplineComponent* Spline = PathActor->FindComponentByClass<USplineComponent>();
-			if (!Spline) return;
+			if (!Spline)
+			{
+				State.Remaining = 0;
+				continue;
+			}
+
+			State.Remaining--;
 
 			FVector SpawnLoc = Spline->GetLocationAtSplinePoint(0, ESplineCoordinateSpace::World);
 
@@ -141,7 +153,9 @@ void ATDWaveManager::OnEnemyKilled()
 
 void ATDWaveManager::OnEnemyReachedEnd()
 {
+	KilledCount++;
 	WaveProcessedEnemies++;
+	OnWaveProgress.Broadcast(KilledCount, TotalCount);
 	CheckWaveComplete();
 }
 

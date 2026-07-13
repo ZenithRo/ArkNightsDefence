@@ -19,6 +19,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "HUD")
 	void OnPauseButtonClicked();
 
+	// 升级按钮点击: 由UMG蓝图Button的OnClicked绑定
+	UFUNCTION(BlueprintCallable, Category = "HUD")
+	void OnUpgradeButtonClicked();
+
 	// 生命值显示 (BindWidget: 蓝图中的TextBlock必须命名为TextLives)
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<class UTextBlock> TextLives;

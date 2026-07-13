@@ -78,14 +78,54 @@ void UTDHandPanel::RefreshAllCards()
 	ATDPlayerController* TDPC = Cast<ATDPlayerController>(PC);
 	if (!TDPC) return;
 
-	TArray<UWidget*> Children = RootCanvas->GetAllChildren();
-	for (UWidget* Child : Children)
+	// 清除所有子Widget, 重新创建以更新排序和费用
+	RootCanvas->ClearChildren();
+
+	TArray<int32> SortedIndices = TDPC->GetDescendingSortedHandCardIndices();
+	if (SortedIndices.Num() == 0) return;
+
+	const int32 CardSize = 180;
+	const int32 Gap = 1;
+
+	for (int32 i = 0; i < SortedIndices.Num(); i++)
 	{
-		UTDHandCard* Card = Cast<UTDHandCard>(Child);
-		if (Card)
+		int32 CardIdx = SortedIndices[i];
+
+		UTDHandCard* Card = CreateWidget<UTDHandCard>(PC, HandCardClass);
+		if (!Card) continue;
+
+		Card->CardIndex = CardIdx;
+		Card->CardCost = TDPC->GetHandCardCost(CardIdx);
+
+		TSubclassOf<ATDBaseTower> TowerSubclass = TDPC->GetHandCardClass(CardIdx);
+		if (TowerSubclass)
 		{
-			float NewCost = TDPC->GetHandCardCost(Card->CardIndex);
-			Card->UpdateCost(NewCost);
+			ATDBaseTower* DefaultTower = TowerSubclass.GetDefaultObject();
+			UEnum* ClassEnum = StaticEnum<ETowerClass>();
+			if (ClassEnum)
+			{
+				FString IconNameStr = ClassEnum->GetDisplayNameTextByValue(static_cast<int64>(DefaultTower->TowerClass)).ToString();
+				Card->CardIconName = FText::FromString(IconNameStr);
+
+				FString IconPath = FString::Printf(TEXT("/Game/Resource/ico/%s.%s"), *IconNameStr, *IconNameStr);
+				Card->CardIcon = Cast<UTexture2D>(FSoftObjectPath(IconPath).TryLoad());
+			}
+
+			FString ClassName = TowerSubclass->GetName();
+			ClassName.RemoveFromEnd(TEXT("_C"));
+			FString AvatarPath = FString::Printf(TEXT("/Game/Resource/Avatar/%s_avatar.%s_avatar"), *ClassName, *ClassName);
+			Card->CardAvatar = Cast<UTexture2D>(FSoftObjectPath(AvatarPath).TryLoad());
+		}
+
+		Card->Initialize();
+
+		UCanvasPanelSlot* CardSlot = RootCanvas->AddChildToCanvas(Card);
+		if (CardSlot)
+		{
+			CardSlot->SetAnchors(FAnchors(1.0f, 1.0f, 1.0f, 1.0f));
+			CardSlot->SetAlignment(FVector2D(1.0f, 1.0f));
+			CardSlot->SetPosition(FVector2D(-static_cast<float>(i * (CardSize + Gap)), 0.0f));
+			CardSlot->SetSize(FVector2D(CardSize, CardSize));
 		}
 	}
 }

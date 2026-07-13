@@ -423,3 +423,74 @@ void ATDPlayerController::CancelPlacement()
 		GhostActor = nullptr;
 	}
 }
+
+void ATDPlayerController::EnterUpgradeMode()
+{
+	if (SelectedHandCardIndex >= 0)
+	{
+		return;
+	}
+
+	if (!HandCardLevels.IsValidIndex(0))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ATDPlayerController::EnterUpgradeMode: HandCardLevels is empty! GM=%s, LevelHandCards.Num=%d"),
+			*GetNameSafe(GetWorld()->GetAuthGameMode()),
+			Cast<ATDGameMode>(GetWorld()->GetAuthGameMode()) ? Cast<ATDGameMode>(GetWorld()->GetAuthGameMode())->LevelHandCards.Num() : -1);
+		return;
+	}
+
+	bInUpgradeMode = true;
+}
+
+void ATDPlayerController::ExitUpgradeMode()
+{
+	bInUpgradeMode = false;
+}
+
+int32 ATDPlayerController::TryUpgradeHandCard(int32 Index)
+{
+	if (!HandCardLevels.IsValidIndex(Index))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("TryUpgradeHandCard: Index %d invalid, HandCardLevels.Num=%d"), Index, HandCardLevels.Num());
+		return -1;
+	}
+
+	int32 CurrentLevel = HandCardLevels[Index];
+	if (CurrentLevel >= 3)
+	{
+		UE_LOG(LogTemp, Log, TEXT("TryUpgradeHandCard: Index %d already max level (%d)"), Index, CurrentLevel);
+		return 1;
+	}
+
+	ATDGameMode* GM = Cast<ATDGameMode>(GetWorld()->GetAuthGameMode());
+	if (!GM)
+	{
+		UE_LOG(LogTemp, Error, TEXT("TryUpgradeHandCard: GM is null"));
+		return -1;
+	}
+
+	TSubclassOf<ATDBaseTower> TowerClass = GetHandCardClass(Index);
+	if (!TowerClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("TryUpgradeHandCard: GetHandCardClass(%d) returned null"), Index);
+		return -1;
+	}
+
+	ATDBaseTower* CDO = TowerClass.GetDefaultObject();
+	if (!CDO)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("TryUpgradeHandCard: CDO null for class %s"), *TowerClass->GetName());
+		return -1;
+	}
+
+	int32 Cost = (CurrentLevel == 1) ? CDO->UpgradeCost_Lv2 : CDO->UpgradeCost_Lv3;
+	if (!GM->SpendExperience(Cost))
+	{
+		UE_LOG(LogTemp, Log, TEXT("TryUpgradeHandCard: Index %d Lv%d -> Lv%d needs %d EXP, insufficient"), Index, CurrentLevel, CurrentLevel + 1, Cost);
+		return -1;
+	}
+
+	HandCardLevels[Index]++;
+	RefreshHandCards();
+	return 0;
+}

@@ -147,8 +147,6 @@ void ATDBaseTower::BeginPlay()
 		AnimState = ETowerAnimState::Idle;
 	}
 
-	GetWorldTimerManager().SetTimer(FireTimerHandle, this, &ATDBaseTower::Fire, AttackInterval, true);
-
 	// 初始化血条(浅蓝色)
 	if (HealthBarComp)
 	{
@@ -190,7 +188,7 @@ void ATDBaseTower::Tick(float DeltaTime)
 			!CanTargetEnemy(CurrentTarget) ||
 			!IsEnemyInRangeCells(CurrentTarget) ||
 			(AttackRangeMode == EAttackRangeMode::Circle &&
-			 FVector::Dist(GetActorLocation(), CurrentTarget->GetActorLocation()) > AttackRange))
+			 FVector::Dist2D(GetActorLocation(), CurrentTarget->GetActorLocation()) > AttackRange))
 		{
 			FindTarget();
 		}
@@ -283,7 +281,7 @@ void ATDBaseTower::PlayAnim(const FString& AnimName, bool Loop)
 		{
 			if (spine::TrackEntry* Entry = State->getCurrent(0))
 			{
-				Entry->timeScale = 1.0f / AttackInterval;
+				Entry->setTimeScale(1.0f / AttackInterval);
 			}
 		}
 	}
@@ -312,7 +310,7 @@ void ATDBaseTower::OnAnimComplete(UTrackEntry* Entry)
 		break;
 
 	case ETowerAnimState::Attacking:
-		// Attack(单次) 播完或 Attack_Loop 播完 → 重新检查目标
+		Fire();
 		if (CurrentTarget && CurrentTarget->CurrentHealth > 0.0f &&
 			CanTargetEnemy(CurrentTarget) && IsEnemyInRangeCells(CurrentTarget))
 		{
@@ -462,7 +460,7 @@ void ATDBaseTower::FindTarget()
 			bool bInRange = false;
 			if (AttackRangeMode == EAttackRangeMode::Circle)
 			{
-				bInRange = FVector::Dist(GetActorLocation(), Ally->GetActorLocation()) <= AttackRange;
+				bInRange = FVector::Dist2D(GetActorLocation(), Ally->GetActorLocation()) <= AttackRange;
 			}
 			else
 			{
@@ -493,7 +491,7 @@ void ATDBaseTower::FindTarget()
 
 		if (AttackRangeMode == EAttackRangeMode::Circle)
 		{
-			float Dist = FVector::Dist(GetActorLocation(), Enemy->GetActorLocation());
+			float Dist = FVector::Dist2D(GetActorLocation(), Enemy->GetActorLocation());
 			if (Dist > AttackRange) continue;
 		}
 
@@ -540,7 +538,7 @@ void ATDBaseTower::Fire()
 				if (Ally->CurrentHealth >= Ally->MaxHealth) continue;
 
 				bool bInRange = (AttackRangeMode == EAttackRangeMode::Circle)
-					? FVector::Dist(GetActorLocation(), Ally->GetActorLocation()) <= AttackRange
+					? FVector::Dist2D(GetActorLocation(), Ally->GetActorLocation()) <= AttackRange
 					: IsTowerInRangeCells(Ally);
 				if (!bInRange) continue;
 
@@ -555,7 +553,7 @@ void ATDBaseTower::Fire()
 			if (BestAlly)
 			{
 				HealTarget = BestAlly;
-				BestAlly->CurrentHealth = FMath::Min(BestAlly->MaxHealth, BestAlly->CurrentHealth + HealAmount);
+				BestAlly->CurrentHealth = FMath::Min(BestAlly->MaxHealth, BestAlly->CurrentHealth + HealAmount + PhysicalDamage + MagicDamage);
 			}
 		}
 		else
@@ -567,7 +565,7 @@ void ATDBaseTower::Fire()
 				if (Ally->CurrentHealth >= Ally->MaxHealth) continue;
 
 				bool bInRange = (AttackRangeMode == EAttackRangeMode::Circle)
-					? FVector::Dist(GetActorLocation(), Ally->GetActorLocation()) <= AttackRange
+					? FVector::Dist2D(GetActorLocation(), Ally->GetActorLocation()) <= AttackRange
 					: IsTowerInRangeCells(Ally);
 				if (!bInRange) continue;
 
@@ -576,7 +574,7 @@ void ATDBaseTower::Fire()
 					HealTarget = Ally;
 				}
 
-				Ally->CurrentHealth = FMath::Min(Ally->MaxHealth, Ally->CurrentHealth + HealAmount);
+				Ally->CurrentHealth = FMath::Min(Ally->MaxHealth, Ally->CurrentHealth + HealAmount + PhysicalDamage + MagicDamage);
 			}
 		}
 		return;
@@ -596,7 +594,7 @@ void ATDBaseTower::Fire()
 
 			if (AttackRangeMode == EAttackRangeMode::Circle)
 			{
-				float Dist = FVector::Dist(GetActorLocation(), Enemy->GetActorLocation());
+				float Dist = FVector::Dist2D(GetActorLocation(), Enemy->GetActorLocation());
 				if (Dist > AttackRange) continue;
 			}
 
@@ -610,7 +608,7 @@ void ATDBaseTower::Fire()
 			!CanTargetEnemy(CurrentTarget) ||
 			!IsEnemyInRangeCells(CurrentTarget) ||
 			(AttackRangeMode == EAttackRangeMode::Circle &&
-			 FVector::Dist(GetActorLocation(), CurrentTarget->GetActorLocation()) > AttackRange))
+			 FVector::Dist2D(GetActorLocation(), CurrentTarget->GetActorLocation()) > AttackRange))
 		{
 			FindTarget();
 		}
@@ -653,8 +651,6 @@ void ATDBaseTower::Die()
 	// 释放所有被阻挡的敌人
 	FreeAllBlockedEnemies();
 
-	GetWorldTimerManager().ClearTimer(FireTimerHandle);
-
 	if (HealthBarComp)
 	{
 		HealthBarComp->SetVisibility(false);
@@ -685,9 +681,6 @@ bool ATDBaseTower::LevelUp()
 
 	TowerLevel++;
 	ApplyLevelUpStats();
-
-	GetWorldTimerManager().ClearTimer(FireTimerHandle);
-	GetWorldTimerManager().SetTimer(FireTimerHandle, this, &ATDBaseTower::Fire, AttackInterval, true);
 
 	return true;
 }

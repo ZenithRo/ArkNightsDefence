@@ -1,9 +1,8 @@
-// UMG HUD Widget实现: 由GameMode数据变化时触发更新, 不依赖Tick轮询
 #include "UI/TDHUDWidget.h"
 #include "Core/TDGameMode.h"
+#include "Core/TDPlayerController.h"
 #include "Components/TextBlock.h"
 
-// 从GameMode读取最新数据并刷新所有TextBlock (被GameMode在数据变化时调用)
 void UTDHUDWidget::UpdateDisplay()
 {
 	ATDGameMode* GM = Cast<ATDGameMode>(GetWorld()->GetAuthGameMode());
@@ -20,5 +19,20 @@ void UTDHUDWidget::UpdateDisplay()
 	if (TextExp)
 	{
 		TextExp->SetText(FText::FromString(FString::Printf(TEXT("EXP: %d"), GM->Experience)));
+	}
+	if (TextWave)
+	{
+		FString WaveText = FString::Printf(TEXT("Wave %d: %d/%d"),
+			GM->CurrentWaveIndex + 1, GM->WaveKilledCount, GM->WaveTotalCount);
+		TextWave->SetText(FText::FromString(WaveText));
+	}
+}
+
+void UTDHUDWidget::OnPauseButtonClicked()
+{
+	ATDPlayerController* PC = Cast<ATDPlayerController>(GetOwningPlayer());
+	if (PC)
+	{
+		PC->OnPauseToggle();
 	}
 }

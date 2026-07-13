@@ -15,6 +15,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "HUD")
 	void UpdateDisplay();
 
+	// 暂停按钮点击: 由UMG蓝图Button的OnClicked绑定
+	UFUNCTION(BlueprintCallable, Category = "HUD")
+	void OnPauseButtonClicked();
+
 	// 生命值显示 (BindWidget: 蓝图中的TextBlock必须命名为TextLives)
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<class UTextBlock> TextLives;
@@ -26,4 +30,8 @@ public:
 	// 经验显示 (BindWidget: 蓝图中的TextBlock必须命名为TextExp)
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<class UTextBlock> TextExp;
+
+	// 波次进度 (BindWidget: 蓝图中的TextBlock必须命名为TextWave)
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	TObjectPtr<class UTextBlock> TextWave;
 };

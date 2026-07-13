@@ -50,7 +50,7 @@ enum class ETowerClass : uint8
 	Specialist  UMETA(DisplayName = "Specialist")
 };
 
-UCLASS()
+UCLASS(Blueprintable)
 class ARKNIGHTSDEFENCE_API ATDBaseTower : public AActor
 {
 	GENERATED_BODY()
@@ -164,7 +164,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Combat")
 	bool bIsMedic = false;
 
-	// 医疗塔: 每次治疗量
+	// 医疗塔: 治疗量 = 额外治疗量 + PhysicalDamage + MagicDamage
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower|Combat", meta = (EditCondition = "bIsMedic"))
 	float HealAmount = 30.0f;
 

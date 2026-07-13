@@ -67,8 +67,6 @@ void ATDEnemy::BeginPlay()
 		AnimState = EEnemyAnimState::MoveBeginning;
 	}
 
-	GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &ATDEnemy::MeleeAttack, AttackInterval, true);
-
 	// 初始化血条(红色)
 	if (HealthBarComp)
 	{
@@ -140,11 +138,23 @@ void ATDEnemy::Tick(float DeltaTime)
 	// 查找最近的塔
 	FindNearestTower();
 
-	// 有目标塔且在近战范围内
-	if (CurrentTargetTower && !CurrentTargetTower->bIsDead &&
-		FVector::Dist(GetActorLocation(), CurrentTargetTower->GetActorLocation()) <= MeleeRange)
+	// 判断目标是否在攻击范围内
+	bool bTargetInRange = false;
+	if (CurrentTargetTower && !CurrentTargetTower->bIsDead)
 	{
-		// 飞行敌人不触发阻挡
+		if (AttackRangeMode == EAttackRangeMode::Matrix && AttackRangeCells.Num() > 0)
+		{
+			bTargetInRange = IsTowerInRangeCells(CurrentTargetTower);
+		}
+		else
+		{
+			bTargetInRange = FVector::Dist2D(GetActorLocation(), CurrentTargetTower->GetActorLocation()) <= MeleeRange;
+		}
+	}
+
+	// 有目标塔且在攻击范围内
+	if (CurrentTargetTower && !CurrentTargetTower->bIsDead && bTargetInRange)
+	{
 		if (EnemyType != EEnemyType::Fly)
 		{
 			if (!bIsBlocked && CurrentTargetTower->GetCurrentBlockCount() < CurrentTargetTower->MaxBlockCount)
@@ -153,9 +163,16 @@ void ATDEnemy::Tick(float DeltaTime)
 			}
 		}
 
-		if (bIsBlocked)
+		if (EnemyType == EEnemyType::Fly)
 		{
-			// 被阻挡 → 停止移动, 攻击
+			if (AnimState != EEnemyAnimState::Attacking && AnimState != EEnemyAnimState::MoveEnding)
+			{
+				PlayAnim(TEXT("Attack"), true);
+				AnimState = EEnemyAnimState::Attacking;
+			}
+		}
+		else if (bIsBlocked)
+		{
 			if (AnimState == EEnemyAnimState::Moving || AnimState == EEnemyAnimState::MoveBeginning)
 			{
 				PlayAnim(TEXT("Move_End"), false);
@@ -164,13 +181,21 @@ void ATDEnemy::Tick(float DeltaTime)
 		}
 		else
 		{
-			// 塔阻挡已满, 穿过
 			CurrentTargetTower = nullptr;
 			if (AnimState == EEnemyAnimState::Attacking || AnimState == EEnemyAnimState::MoveEnding)
 			{
 				PlayAnim(TEXT("Move_Begin"), false);
 				AnimState = EEnemyAnimState::MoveBeginning;
 			}
+		}
+	}
+	else if (CurrentTargetTower && !CurrentTargetTower->bIsDead &&
+		FVector::Dist2D(GetActorLocation(), CurrentTargetTower->GetActorLocation()) <= MeleeRange)
+	{
+		if (AnimState == EEnemyAnimState::Moving || AnimState == EEnemyAnimState::MoveBeginning)
+		{
+			PlayAnim(TEXT("Move_End"), false);
+			AnimState = EEnemyAnimState::MoveEnding;
 		}
 	}
 	else if (CurrentTargetTower && !CurrentTargetTower->bIsDead)
@@ -193,8 +218,10 @@ void ATDEnemy::Tick(float DeltaTime)
 		if (bIsBlocked) OnUnblocked();
 	}
 
-	// 当处于移动相关状态时且未被阻挡, 沿Spline前进 (只取位置, 不旋转Actor)
-	if ((AnimState == EEnemyAnimState::Moving || AnimState == EEnemyAnimState::MoveBeginning) && !bIsBlocked)
+	// 当处于移动相关状态时且未被阻挡, 沿Spline前进
+	// 飞行敌人在攻击时也继续移动
+	if ((AnimState == EEnemyAnimState::Moving || AnimState == EEnemyAnimState::MoveBeginning ||
+		(AnimState == EEnemyAnimState::Attacking && EnemyType == EEnemyType::Fly)) && !bIsBlocked)
 	{
 		if (!CachedSpline) return;
 
@@ -239,7 +266,7 @@ void ATDEnemy::PlayAnim(const FString& AnimName, bool Loop)
 		{
 			if (spine::TrackEntry* Entry = State->getCurrent(0))
 			{
-				Entry->timeScale = 1.0f / AttackInterval;
+				Entry->setTimeScale(1.0f / AttackInterval);
 			}
 		}
 	}
@@ -255,8 +282,21 @@ void ATDEnemy::OnAnimComplete(UTrackEntry* Entry)
 		break;
 
 	case EEnemyAnimState::MoveEnding:
-		PlayAnim(TEXT("Attack"), true);
+		PlayAnim(TEXT("Attack"), false);
 		AnimState = EEnemyAnimState::Attacking;
+		break;
+
+	case EEnemyAnimState::Attacking:
+		MeleeAttack();
+		if (CurrentTargetTower && !CurrentTargetTower->bIsDead)
+		{
+			PlayAnim(TEXT("Attack"), false);
+			AnimState = EEnemyAnimState::Attacking;
+		}
+		else
+		{
+			CurrentTargetTower = nullptr;
+		}
 		break;
 
 	case EEnemyAnimState::Dying:
@@ -314,6 +354,15 @@ void ATDEnemy::ApplyDamageToSelfWithPenetration(float InPhysical, float InMagic,
 	}
 }
 
+void ATDEnemy::SetPathActor(AActor* InPathActor)
+{
+	PathActor = InPathActor;
+	if (PathActor)
+	{
+		CachedSpline = PathActor->FindComponentByClass<USplineComponent>();
+	}
+}
+
 void ATDEnemy::FindNearestTower()
 {
 	if (CurrentTargetTower && !CurrentTargetTower->bIsDead) return;
@@ -323,15 +372,22 @@ void ATDEnemy::FindNearestTower()
 	UWorld* World = GetWorld();
 	if (!World) return;
 
-	float ClosestDist = MeleeRange;
+	float SearchRange = (AttackRangeMode == EAttackRangeMode::Matrix && AttackRangeCells.Num() > 0)
+		? 100000.0f : MeleeRange;
+	float ClosestDist = SearchRange;
 
 	for (TActorIterator<ATDBaseTower> It(World); It; ++It)
 	{
 		ATDBaseTower* Tower = *It;
 		if (!Tower || Tower->bIsDead) continue;
 
-		float Dist = FVector::Dist(GetActorLocation(), Tower->GetActorLocation());
-		if (Dist > MeleeRange) continue;
+		float Dist = FVector::Dist2D(GetActorLocation(), Tower->GetActorLocation());
+		if (Dist > SearchRange) continue;
+
+		if (AttackRangeMode == EAttackRangeMode::Circle)
+		{
+			if (Dist > MeleeRange) continue;
+		}
 
 		// 攻击目标类型过滤(地面塔/高台塔)
 		if (AttackTargetType != EEnemyAttackTarget::Both)
@@ -380,6 +436,30 @@ void ATDEnemy::FindNearestTower()
 			CurrentTargetTower = Tower;
 		}
 	}
+}
+
+bool ATDEnemy::IsTowerInRangeCells(const ATDBaseTower* Tower) const
+{
+	if (!Tower || AttackRangeCells.Num() == 0) return true;
+
+	ATDGameMode* GM = Cast<ATDGameMode>(GetWorld()->GetAuthGameMode());
+	if (!GM || !GM->GridManager) return true;
+
+	int32 MyCol, MyRow, TowerCol, TowerRow;
+	if (!GM->GridManager->WorldToGrid(GetActorLocation(), MyCol, MyRow)) return false;
+	if (!GM->GridManager->WorldToGrid(Tower->GetActorLocation(), TowerCol, TowerRow)) return false;
+
+	int32 RelCol = TowerCol - MyCol;
+	int32 RelRow = TowerRow - MyRow;
+
+	for (const FAttackRangeCell& Cell : AttackRangeCells)
+	{
+		if (Cell.DeltaX == RelCol && Cell.DeltaY == RelRow)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 void ATDEnemy::OnBlocked(ATDBaseTower* Blocker)
@@ -434,8 +514,6 @@ void ATDEnemy::Die()
 	bIsBlocked = false;
 	BlockedByTower = nullptr;
 
-	GetWorldTimerManager().ClearTimer(AttackTimerHandle);
-
 	if (HealthBarComp)
 	{
 		HealthBarComp->SetVisibility(false);
@@ -446,6 +524,8 @@ void ATDEnemy::Die()
 	{
 		GM->AddExperience(ExperienceDrop);
 	}
+
+	OnEnemyFinished.Broadcast();
 
 	if (SpineAnim && SpineAnim->HasAnimation(TEXT("Die")))
 	{
@@ -465,5 +545,7 @@ void ATDEnemy::OnReachedEnd()
 	{
 		GM->EnemyReachedEnd(LifeDamage);
 	}
+
+	OnEnemyReachedEndDel.Broadcast();
 	Destroy();
 }

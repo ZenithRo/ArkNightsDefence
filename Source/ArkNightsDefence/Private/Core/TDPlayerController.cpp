@@ -53,6 +53,35 @@ void ATDPlayerController::SetupInputComponent()
 			EnhancedInput->BindAction(ClickAction, ETriggerEvent::Started, this, &ATDPlayerController::OnClick);
 		}
 	}
+
+	InputComponent->BindKey(EKeys::P, IE_Released, this, &ATDPlayerController::OnPauseToggle);
+	InputComponent->BindKey(EKeys::SpaceBar, IE_Released, this, &ATDPlayerController::OnSpeedToggle);
+}
+
+void ATDPlayerController::OnPauseToggle()
+{
+	if (!GetWorldSettings()) return;
+
+	if (bIsPaused)
+	{
+		GetWorldSettings()->SetTimeDilation(PreviousTimeDilation);
+		bIsPaused = false;
+	}
+	else
+	{
+		PreviousTimeDilation = GetWorldSettings()->GetEffectiveTimeDilation();
+		GetWorldSettings()->SetTimeDilation(0.0f);
+		bIsPaused = true;
+	}
+}
+
+void ATDPlayerController::OnSpeedToggle()
+{
+	if (!GetWorldSettings() || bIsPaused) return;
+
+	float CurrentDilation = GetWorldSettings()->GetEffectiveTimeDilation();
+	PreviousTimeDilation = (CurrentDilation >= 1.9f) ? 1.0f : 2.0f;
+	GetWorldSettings()->SetTimeDilation(PreviousTimeDilation);
 }
 
 void ATDPlayerController::Tick(float DeltaTime)

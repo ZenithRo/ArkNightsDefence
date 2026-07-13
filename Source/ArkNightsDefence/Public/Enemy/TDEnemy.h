@@ -155,9 +155,18 @@ public:
 	// 伤害计算(支持无视防御百分比: 0-100)
 	void ApplyDamageToSelfWithPenetration(float InPhysical, float InMagic, float IgnorePhysPct, float IgnoreMagicPct);
 
+	// 波次系统事件
+	FSimpleMulticastDelegate OnEnemyFinished;
+	FSimpleMulticastDelegate OnEnemyReachedEndDel;
+
+	UFUNCTION(BlueprintCallable, Category = "Enemy")
+	void SetPathActor(AActor* InPathActor);
+
 	// 阻挡系统
 	bool bIsBlocked = false;
 	TWeakObjectPtr<ATDBaseTower> BlockedByTower;
+
+	bool IsTowerInRangeCells(const ATDBaseTower* Tower) const;
 
 	void OnBlocked(ATDBaseTower* Blocker);
 	void OnUnblocked();
@@ -174,7 +183,6 @@ public:
 
 private:
 	TObjectPtr<USplineComponent> CachedSpline;
-	FTimerHandle AttackTimerHandle;
 	FTimerHandle SlowTimerHandle;
 	bool bIsDead = false;
 

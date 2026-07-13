@@ -5,33 +5,10 @@
 #include "TDWaveManager.generated.h"
 
 class ATDEnemy;
+class UDataTable;
 
-USTRUCT(BlueprintType)
-struct FWaveEnemyEntry
-{
-    GENERATED_BODY()
-
-    UPROPERTY(EditDefaultsOnly, Category = "Wave")
-    TSubclassOf<ATDEnemy> EnemyClass;
-
-    UPROPERTY(EditDefaultsOnly, Category = "Wave")
-    float SpawnDelay = 0.0f;
-
-    UPROPERTY(EditDefaultsOnly, Category = "Wave")
-    int32 PathIndex = 0;
-};
-
-USTRUCT(BlueprintType)
-struct FWaveData
-{
-    GENERATED_BODY()
-
-    UPROPERTY(EditDefaultsOnly, Category = "Wave")
-    TArray<FWaveEnemyEntry> Enemies;
-
-    UPROPERTY(EditDefaultsOnly, Category = "Wave")
-    float WaveStartDelay = 0.0f;
-};
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWaveProgressDelegate, int32, Killed, int32, Total);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWaveChangedDelegate, int32, WaveIndex);
 
 UCLASS(Blueprintable)
 class ARKNIGHTSDEFENCE_API ATDWaveManager : public AActor
@@ -41,27 +18,58 @@ class ARKNIGHTSDEFENCE_API ATDWaveManager : public AActor
 public:
     ATDWaveManager();
 
-    UPROPERTY(EditDefaultsOnly, Category = "Waves")
-    TArray<FWaveData> WaveConfigs;
+	// 波次配置表 (DataTable行名: Wave_1, Wave_2, ...)
+	UPROPERTY(EditAnywhere, Category = "Waves")
+	TObjectPtr<UDataTable> WaveDataTable;
 
+    // 路径Actor列表 (PathIndex映射到该数组)
     UPROPERTY(EditAnywhere, Category = "Paths")
     TArray<TObjectPtr<AActor>> PathActors;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Waves")
-    int32 CurrentWaveIndex = 0;
+    FOnWaveProgressDelegate OnWaveProgress;
+    FOnWaveChangedDelegate OnWaveChanged;
 
     UFUNCTION(BlueprintCallable, Category = "Waves")
     void StartAllWaves();
 
     UFUNCTION(BlueprintCallable, Category = "Waves")
-    void SpawnWave(int32 WaveIndex);
+    void OnEnemyKilled();
 
     UFUNCTION(BlueprintCallable, Category = "Waves")
-    void SpawnEnemy(TSubclassOf<ATDEnemy> EnemyClass, int32 PathIndex);
+    void OnEnemyReachedEnd();
+
+    UFUNCTION(BlueprintPure, Category = "Waves")
+    int32 GetCurrentWaveIndex() const { return CurrentWaveIndex; }
+
+    UFUNCTION(BlueprintPure, Category = "Waves")
+    int32 GetKilledCount() const { return KilledCount; }
+
+    UFUNCTION(BlueprintPure, Category = "Waves")
+    int32 GetTotalCount() const { return TotalCount; }
 
 protected:
     virtual void BeginPlay() override;
 
 private:
-    void SpawnNextWave();
+    int32 CurrentWaveIndex = 0;
+    int32 KilledCount = 0;
+    int32 TotalCount = 0;
+    int32 WaveTotalEnemies = 0;
+    int32 WaveProcessedEnemies = 0;
+
+    struct FWaveSpawnState
+    {
+        TSubclassOf<ATDEnemy> EnemyClass;
+        int32 Remaining = 0;
+        float SpawnInterval = 1.0f;
+        int32 PathIndex = 0;
+    };
+
+    TArray<FWaveSpawnState> ActiveSpawnStates;
+    FTimerHandle SpawnTimerHandle;
+
+    TArray<FName> WaveRowNames;
+    void StartWave(int32 WaveIndex);
+    void SpawnNextFromState();
+    void CheckWaveComplete();
 };

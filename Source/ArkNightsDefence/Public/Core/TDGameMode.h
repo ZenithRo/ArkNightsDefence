@@ -5,6 +5,12 @@
 #include "TDGameMode.generated.h"
 
 // 塔防GameMode: 管理生命/费用/经验, 提供扣费/加经验/扣生命接口
+class ATDBaseTower;
+class ATDWaveManager;
+class UTDGridManager;
+class UTDHandPanel;
+class UTDHUDWidget;
+
 UCLASS()
 class ARKNIGHTSDEFENCE_API ATDGameMode : public AGameModeBase
 {
@@ -38,6 +44,20 @@ public:
 	// HUD引用: 由BP_TDGameMode在BeginPlay创建WBP_HUD后赋值, 数据变化时自动刷新UI
 	UPROPERTY(BlueprintReadWrite, Category = "Game|HUD")
 	TObjectPtr<class UTDHUDWidget> HUDWidget;
+
+	// 波次管理器引用 (由关卡蓝图在BeginPlay中设置)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Game|Waves")
+	TObjectPtr<class ATDWaveManager> WaveManager;
+
+	// 当前波次进度
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Game|Waves")
+	int32 WaveKilledCount = 0;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Game|Waves")
+	int32 WaveTotalCount = 0;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Game|Waves")
+	int32 CurrentWaveIndex = 0;
 
 	// 手牌面板
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Game|UI")

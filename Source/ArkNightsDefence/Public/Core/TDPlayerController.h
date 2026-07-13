@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "InputCoreTypes.h"
 #include "Tower/TDDeployDirection.h"
 #include "TDPlayerController.generated.h"
 
@@ -66,6 +67,12 @@ public:
 
 	void OnClick(const FInputActionValue& Value);
 
+	UFUNCTION()
+	void OnPauseToggle();
+
+	UFUNCTION()
+	void OnSpeedToggle();
+
 private:
 	void UpdateGhostToMouse();
 	void DeployAtCell(int32 Col, int32 Row);
@@ -85,4 +92,8 @@ private:
 	int32 DragCol = -1;
 	int32 DragRow = -1;
 	int32 PendingDeployCountdown = 0;
+
+	// 暂停/倍速
+	float PreviousTimeDilation = 1.0f;
+	bool bIsPaused = false;
 };

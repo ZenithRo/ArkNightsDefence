@@ -3,6 +3,7 @@
 #include "UI/TDHandPanel.h"
 #include "Grid/TDGridManager.h"
 #include "Grid/TDGridDataActor.h"
+#include "Enemy/TDWaveManager.h"
 #include "TimerManager.h"
 #include "EngineUtils.h"
 
@@ -42,6 +43,20 @@ void ATDGameMode::BeginPlay()
 			HandPanel->AddToViewport();
 		}
 	}
+
+	// 自动查找关卡中的 WaveManager 并启动波次
+	if (!WaveManager)
+	{
+		for (TActorIterator<ATDWaveManager> It(GetWorld()); It; ++It)
+		{
+			WaveManager = *It;
+			break;
+		}
+	}
+	if (WaveManager)
+	{
+		WaveManager->StartAllWaves();
+	}
 }
 
 void ATDGameMode::RegenerateCost()
@@ -53,6 +68,20 @@ void ATDGameMode::RegenerateCost()
 void ATDGameMode::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (WaveManager)
+	{
+		int32 NewKilled = WaveManager->GetKilledCount();
+		int32 NewTotal = WaveManager->GetTotalCount();
+		int32 NewWave = WaveManager->GetCurrentWaveIndex();
+		if (NewKilled != WaveKilledCount || NewTotal != WaveTotalCount || NewWave != CurrentWaveIndex)
+		{
+			WaveKilledCount = NewKilled;
+			WaveTotalCount = NewTotal;
+			CurrentWaveIndex = NewWave;
+			if (HUDWidget) HUDWidget->UpdateDisplay();
+		}
+	}
 }
 
 void ATDGameMode::EnemyReachedEnd(int32 Damage)

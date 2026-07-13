@@ -199,6 +199,7 @@ void ATDBaseTower::Tick(float DeltaTime)
 			!IsTowerInRangeCells(HealTarget))
 		{
 			HealTarget = nullptr;
+			FindTarget();
 		}
 	}
 
@@ -476,7 +477,7 @@ void ATDBaseTower::FindTarget()
 			}
 		}
 
-		CurrentTarget = nullptr;
+		HealTarget = BestAlly;
 		return;
 	}
 

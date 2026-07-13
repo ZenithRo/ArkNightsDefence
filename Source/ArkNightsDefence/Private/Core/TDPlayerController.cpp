@@ -16,6 +16,7 @@ void ATDPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// 塔防关卡需要鼠标持续可见，用于手牌拖拽和网格部署定位。
 	bShowMouseCursor = true;
 	DefaultMouseCursor = EMouseCursor::Default;
 
@@ -112,6 +113,7 @@ void ATDPlayerController::Tick(float DeltaTime)
 
 bool ATDPlayerController::GetMouseGridPosition(int32& OutCol, int32& OutRow) const
 {
+	// 将鼠标位置反投影到部署平面，再交给网格管理器完成坐标换算。
 	ULocalPlayer* LP = GetLocalPlayer();
 	if (!LP || !LP->ViewportClient || !LP->ViewportClient->Viewport) return false;
 
@@ -314,6 +316,7 @@ void ATDPlayerController::EndPlacement()
 
 void ATDPlayerController::DeployAtCell(int32 Col, int32 Row)
 {
+	// 部署前按顺序检查格子、费用和塔类，任一步失败都会取消预览且不生成 Actor。
 	ATDGameMode* GM = Cast<ATDGameMode>(GetWorld()->GetAuthGameMode());
 	if (!GM || !GM->GridManager || !PendingTowerClass)
 	{

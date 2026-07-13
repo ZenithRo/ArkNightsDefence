@@ -16,6 +16,7 @@
 
 ATDBaseTower::ATDBaseTower()
 {
+	// 防御塔的战斗逻辑在 C++ 中统一实现，蓝图子类主要负责模型和数值配置。
 	PrimaryActorTick.bCanEverTick = true;
 
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
@@ -441,6 +442,7 @@ bool ATDBaseTower::CanTargetEnemy(const ATDEnemy* Enemy) const
 
 void ATDBaseTower::FindTarget()
 {
+	// 先过滤目标类型与攻击范围，再按路径进度选择最靠近终点的敌人。
 	CurrentTarget = nullptr;
 
 	UWorld* World = GetWorld();
@@ -520,6 +522,7 @@ void ATDBaseTower::FindTarget()
 
 void ATDBaseTower::Fire()
 {
+	// 医疗塔走治疗分支，其他塔根据单体/群体模式向敌人施加带穿透计算的伤害。
 	UWorld* World = GetWorld();
 	if (!World || bIsDead) return;
 

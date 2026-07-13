@@ -4,6 +4,7 @@
 
 TArray<ATDEnemy*> UTDGTargetSelector::SelectTargets(const TArray<ATDEnemy*>& Candidates, ATDBaseTower* Selector)
 {
+	// 选择器只负责对传入候选集排序；攻击范围和目标类型由防御塔先行过滤。
 	TArray<ATDEnemy*> SortedCandidates = Candidates;
 
 	switch (Priority)

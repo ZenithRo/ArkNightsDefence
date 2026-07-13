@@ -16,6 +16,7 @@
 
 ATDEnemy::ATDEnemy()
 {
+	// 敌人以 Actor 为基础，移动、碰撞、血条和 Spine 动画由组件协同完成。
 	PrimaryActorTick.bCanEverTick = true;
 
 	Collision = CreateDefaultSubobject<USphereComponent>(TEXT("Collision"));

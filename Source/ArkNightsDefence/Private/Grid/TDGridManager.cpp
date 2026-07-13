@@ -6,6 +6,7 @@
 
 void UTDGridManager::Initialize(int32 InCols, int32 InRows, float InCellSize, FVector InOrigin)
 {
+	// 用一维数组按“行优先”保存二维网格，减少数据结构和蓝图访问的复杂度。
 	NumCols = InCols;
 	NumRows = InRows;
 	CellSize = InCellSize;
@@ -59,6 +60,7 @@ bool UTDGridManager::CanDeployAt(int32 Col, int32 Row) const
 
 bool UTDGridManager::CanDeployAtWithPlacement(int32 Col, int32 Row, ETowerPlacement Placement) const
 {
+	// 部署合法性同时受格子状态和塔的部署类型约束。
 	if (!IsValidCell(Col, Row)) return false;
 
 	const FGridCellData& Cell = Cells[GetIndex(Col, Row)];
@@ -136,6 +138,7 @@ void UTDGridManager::Free(int32 Col, int32 Row)
 
 bool UTDGridManager::GetDeployLocation(const APlayerController* PC, FVector& OutLocation, int32& OutCol, int32& OutRow) const
 {
+	// 双射线接口：第一条射线确定格子，第二条射线获取地形高度。
 	if (!PC || !PC->GetWorld()) return false;
 
 	// 第一层射线: 从摄像机穿透地图, 命中高空判定平面 (DeploymentPlane Trace Channel)

@@ -47,6 +47,14 @@ public:
     UFUNCTION(BlueprintPure, Category = "Waves")
     int32 GetTotalCount() const { return TotalCount; }
 
+    // 所有波次中的敌人都已被击杀或到达终点时为 true。
+    UFUNCTION(BlueprintPure, Category = "Waves")
+    bool AreAllWavesCompleted() const { return bAllWavesCompleted; }
+
+    // 由 GameMode 在胜负结算时调用，停止后续生成计时器。
+    UFUNCTION(BlueprintCallable, Category = "Waves")
+    void StopAllWaves();
+
 protected:
     virtual void BeginPlay() override;
 
@@ -56,6 +64,7 @@ private:
     int32 TotalCount = 0;
     int32 WaveTotalEnemies = 0;
     int32 WaveProcessedEnemies = 0;
+	bool bAllWavesCompleted = false;
 
     struct FWaveSpawnState
     {

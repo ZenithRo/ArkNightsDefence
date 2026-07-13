@@ -11,6 +11,15 @@ class UTDGridManager;
 class UTDHandPanel;
 class UTDHUDWidget;
 
+// 游戏结束状态：由 GameMode 统一维护，BP_TDGameMode 可以直接读取。
+UENUM(BlueprintType)
+enum class ETDGameEndResult : uint8
+{
+	InProgress UMETA(DisplayName = "进行中"),
+	Victory UMETA(DisplayName = "胜利"),
+	Defeat UMETA(DisplayName = "失败")
+};
+
 UCLASS()
 class ARKNIGHTSDEFENCE_API ATDGameMode : public AGameModeBase
 {
@@ -59,6 +68,10 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Game|Waves")
 	int32 CurrentWaveIndex = 0;
 
+	// 当前关卡的胜负状态。默认进行中，所有波次完成且生命值大于 0 时胜利。
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Game|Result")
+	ETDGameEndResult GameEndResult = ETDGameEndResult::InProgress;
+
 	// 手牌面板
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Game|UI")
 	TSubclassOf<class UTDHandPanel> HandPanelClass;
@@ -90,6 +103,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Game")
 	bool SpendExperience(int32 Amount);
 
+	// 以下函数用于 BP_TDGameMode、HUD 和结算界面获取游戏结束结果。
+	UFUNCTION(BlueprintPure, Category = "Game|Result")
+	bool IsGameOver() const;
+
+	UFUNCTION(BlueprintPure, Category = "Game|Result")
+	bool IsVictory() const;
+
+	UFUNCTION(BlueprintPure, Category = "Game|Result")
+	bool IsDefeat() const;
+
+	UFUNCTION(BlueprintPure, Category = "Game|Result")
+	ETDGameEndResult GetGameEndResult() const;
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -99,4 +125,7 @@ private:
 
 	// 费用自然恢复: 每次+1.0, 不超过MaxCost
 	void RegenerateCost();
+
+	// 只允许 GameMode 内部改变最终结果，避免蓝图重复触发结算。
+	void FinishGame(ETDGameEndResult Result);
 };

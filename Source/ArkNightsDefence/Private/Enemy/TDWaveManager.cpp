@@ -18,6 +18,10 @@ void ATDWaveManager::BeginPlay()
 
 void ATDWaveManager::StartAllWaves()
 {
+	bAllWavesCompleted = false;
+	GetWorldTimerManager().ClearTimer(SpawnTimerHandle);
+
+	// 先缓存 DataTable 行名，随后按行号顺序启动每一波敌人生成。
 	if (!WaveDataTable)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("ATDWaveManager::StartAllWaves: WaveDataTable is null"));
@@ -169,5 +173,16 @@ void ATDWaveManager::CheckWaveComplete()
 			CurrentWaveIndex = NextWave;
 			StartWave(CurrentWaveIndex);
 		}
+		else
+		{
+			// 最后一波处理完毕，交给 GameMode 在下一帧结算胜利。
+			bAllWavesCompleted = true;
+		}
 	}
+}
+
+void ATDWaveManager::StopAllWaves()
+{
+	GetWorldTimerManager().ClearTimer(SpawnTimerHandle);
+	ActiveSpawnStates.Empty();
 }

@@ -12,6 +12,9 @@ Saved/
 /Windows/
 /Build/Windows/FileOpenOrder/
 
+# TRAE
+.trae/
+
 # Project
 *.sln.DotSettings.user
 UpgradeLog.htm
